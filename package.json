@@ -1,0 +1,47 @@
+{
+  "name": "admin-umroh",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3005",
+    "build": "next build",
+    "start": "next start -p 3005",
+    "lint": "next lint",
+    "test:stage1": "tsx scripts/acceptance_test.ts",
+    "test:stage2": "tsx scripts/stage_2_acceptance_test.ts",
+    "test:stage3": "tsx scripts/stage_3_acceptance_test.ts",
+    "test:stage3:strict": "tsx scripts/final_stage_3_validation_test.ts",
+    "test:stage3:scheduler": "tsx scripts/production_scheduler_validation_test.ts",
+    "test:stage4": "tsx scripts/stage_4_acceptance_test.ts",
+    "test:stage4:sec": "tsx scripts/stage_4_security_test.ts",
+    "migrate:tidb": "tsx scripts/migrate_tidb.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.49.1",
+    "@types/jszip": "^3.4.0",
+    "@types/pdf-parse": "^1.1.5",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
+    "exceljs": "^4.4.0",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.441.0",
+    "mysql2": "^3.24.3",
+    "next": "^14.2.15",
+    "pdf-parse": "^2.4.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.5.2",
+    "tesseract.js": "^5.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.11",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "tsx": "^4.23.12",
+    "typescript": "^5.6.3"
+  }
+}
