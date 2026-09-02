@@ -398,14 +398,22 @@ export class DbRepository {
   public static async getJamaahById(id: string): Promise<Jamaah | null> {
     if (this.isTiDBLive()) {
       try {
-        const rows = await queryTiDB<Jamaah>('SELECT * FROM jamaah WHERE id = ? AND deleted_at IS NULL LIMIT 1', [id]);
+        const rows = await queryTiDB<any>('SELECT * FROM jamaah WHERE id = ? AND deleted_at IS NULL LIMIT 1', [id]);
         if (rows && rows.length > 0) {
           const j = rows[0];
+          let docs: DocumentRecord[] = [];
+          try {
+            docs = await queryTiDB<DocumentRecord>('SELECT * FROM documents WHERE jamaah_id = ? ORDER BY created_at DESC', [id]);
+          } catch {}
+
           return {
             ...j,
             birth_date: j.birth_date ? new Date(j.birth_date).toISOString().split('T')[0] : null,
             passport_issue_date: j.passport_issue_date ? new Date(j.passport_issue_date).toISOString().split('T')[0] : null,
             passport_expiry_date: j.passport_expiry_date ? new Date(j.passport_expiry_date).toISOString().split('T')[0] : null,
+            documents: docs || [],
+            trips: [],
+            finance_summary: { total_tagihan: 0, total_paid: 0, total_outstanding: 0, status: 'NO_TRIP' },
           };
         }
       } catch (err) {
@@ -625,6 +633,58 @@ export class DbRepository {
             updated_at: now,
           };
           globalStore.document_extractions.push(updatedExtraction);
+        }
+
+        if (this.isTiDBLive()) {
+          try {
+            await queryTiDB(
+              `UPDATE documents SET
+                 jamaah_id = ?,
+                 document_type = ?,
+                 storage_path = ?,
+                 original_file_name = ?,
+                 mime_type = ?,
+                 file_size = ?,
+                 status = ?,
+                 updated_at = NOW()
+               WHERE id = ?`,
+              [
+                updatedDoc.jamaah_id,
+                updatedDoc.document_type,
+                updatedDoc.storage_path,
+                updatedDoc.original_file_name,
+                updatedDoc.mime_type,
+                updatedDoc.file_size,
+                updatedDoc.status,
+                existingDocumentId,
+              ]
+            );
+
+            await queryTiDB(
+              `INSERT INTO document_extractions (id, document_id, raw_extraction, extracted_fields, classification_result, confidence_score, mrz_data, review_status, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+               ON DUPLICATE KEY UPDATE
+                 raw_extraction = VALUES(raw_extraction),
+                 extracted_fields = VALUES(extracted_fields),
+                 classification_result = VALUES(classification_result),
+                 confidence_score = VALUES(confidence_score),
+                 mrz_data = VALUES(mrz_data),
+                 review_status = VALUES(review_status),
+                 updated_at = NOW()`,
+              [
+                updatedExtraction.id,
+                updatedExtraction.document_id,
+                updatedExtraction.raw_extraction,
+                JSON.stringify(updatedExtraction.extracted_fields || {}),
+                updatedExtraction.classification_result,
+                updatedExtraction.confidence_score,
+                updatedExtraction.mrz_data ? JSON.stringify(updatedExtraction.mrz_data) : null,
+                updatedExtraction.review_status,
+              ]
+            );
+          } catch (tidbErr) {
+            console.warn('[TIDB_UPDATE_EXISTING_DOC_ERROR]', tidbErr);
+          }
         }
 
         if (this.isSupabaseLive()) {
