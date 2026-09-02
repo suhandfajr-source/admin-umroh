@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/exports/cleanup",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/intelligence/evaluate",
-      "schedule": "0 * * * *"
+      "schedule": "0 1 * * *"
     }
   ]
 }
