@@ -60,6 +60,8 @@ export async function POST(req: NextRequest) {
       let ocrError: string | undefined = undefined;
       let ocrText = '';
 
+      const clientOcrText = formData.get('client_ocr_text') as string | null;
+
       if (isPdf) {
         console.log(`[PDF_PROCESSING_START] file="${originalFileName}"`);
         const pdfResult = await PdfProcessingService.processPdf(buffer, originalFileName, forcedType || undefined);
@@ -67,9 +69,20 @@ export async function POST(req: NextRequest) {
         ocrText = pdfResult.raw_text || '';
         ocrStatus = pdfResult.confidence > 0 ? 'SUCCESS' : 'OCR_FAILED';
         console.log(`[PDF_PROCESSING_COMPLETE] mode="${pdfResult.pdf_mode}" pages=${pdfResult.page_count} confidence=${pdfResult.confidence}`);
+      } else if (clientOcrText && clientOcrText.trim().length > 0) {
+        // Fast-path: Use OCR text extracted from client-side Web Worker
+        console.log(`[CLIENT_OCR_RECEIVED] textLength=${clientOcrText.length}`);
+        ocrText = clientOcrText;
+        ocrStatus = 'SUCCESS';
+        extraction = await DocumentProcessingService.processText(
+          ocrText, 
+          originalFileName, 
+          forcedType || undefined
+        );
       } else {
-        console.log(`[OCR_START] mime="${mimeType}"`);
-        const ocrRes = await DocumentProcessingService.runOcr(buffer, { timeoutMs: 60000, mimeType });
+        // Fallback: Run server OCR with safe 8s timeout to avoid Vercel 504
+        console.log(`[SERVER_OCR_START] mime="${mimeType}"`);
+        const ocrRes = await DocumentProcessingService.runOcr(buffer, { timeoutMs: 8000, mimeType });
         ocrText = ocrRes.text || '';
         if (ocrRes.error === 'OCR_TIMEOUT') {
           ocrStatus = 'OCR_TIMEOUT';

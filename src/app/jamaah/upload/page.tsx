@@ -19,6 +19,7 @@ import {
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { DocumentType } from '@/types/database.types';
+import { runClientOcr } from '@/lib/document-processing/client-ocr';
 
 export type UploadItemStatus = 
   | 'QUEUED' 
@@ -82,19 +83,54 @@ function DocumentUploadContent() {
     }, 65000); // 65s client safety timeout
 
     try {
-      // Stage 1: Uploading
+      const isPdf = item.file.type === 'application/pdf' || item.file.name.toLowerCase().endsWith('.pdf');
+      let clientOcrText = '';
+
+      // Stage 1: Client OCR (for images: JPG, JPEG, PNG, etc.)
+      if (!isPdf) {
+        setItems(prev => {
+          const copy = [...prev];
+          copy[itemIndex] = { 
+            ...copy[itemIndex], 
+            status: 'EXTRACTING_OCR', 
+            stageMessage: 'Mengekstrak OCR di perangkat...' 
+          };
+          return copy;
+        });
+
+        try {
+          clientOcrText = await runClientOcr(item.file, (percent, msg) => {
+            setItems(prev => {
+              const copy = [...prev];
+              copy[itemIndex] = { 
+                ...copy[itemIndex], 
+                status: 'EXTRACTING_OCR', 
+                stageMessage: `${msg} (${percent}%)` 
+              };
+              return copy;
+            });
+          });
+        } catch (ocrErr) {
+          console.warn('Client OCR warning, falling back to server:', ocrErr);
+        }
+      }
+
+      // Stage 2: Uploading
       setItems(prev => {
         const copy = [...prev];
         copy[itemIndex] = { 
           ...copy[itemIndex], 
           status: 'UPLOADING', 
-          stageMessage: 'Mengupload berkas...' 
+          stageMessage: 'Mengunggah dan menyimpan data...' 
         };
         return copy;
       });
 
       const formData = new FormData();
       formData.append('files', item.file);
+      if (clientOcrText) {
+        formData.append('client_ocr_text', clientOcrText);
+      }
       if (selectedTypeOverride) {
         formData.append('document_type', selectedTypeOverride);
       }
@@ -104,17 +140,6 @@ function DocumentUploadContent() {
       if (item.result?.document?.id) {
         formData.append('document_id', item.result.document.id);
       }
-
-      // Stage 2: OCR
-      setItems(prev => {
-        const copy = [...prev];
-        copy[itemIndex] = { 
-          ...copy[itemIndex], 
-          status: 'EXTRACTING_OCR', 
-          stageMessage: 'Mengekstrak OCR...' 
-        };
-        return copy;
-      });
 
       const res = await fetch('/api/documents/upload', {
         method: 'POST',
