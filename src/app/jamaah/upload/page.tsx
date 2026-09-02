@@ -439,7 +439,7 @@ function DocumentUploadContent() {
                       </Badge>
                       {item.result?.document?.id && (
                         <Link
-                          href={`/jamaah/review/${item.result.document.id}`}
+                          href={`/jamaah/review/${item.result.document.id}?queue=${items.filter(i => i.result?.document?.id).map(i => i.result!.document.id).join(',')}`}
                           className="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-all"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -456,7 +456,7 @@ function DocumentUploadContent() {
                       </Badge>
                       {item.result?.document?.id && (
                         <Link
-                          href={`/jamaah/review/${item.result.document.id}`}
+                          href={`/jamaah/review/${item.result.document.id}?queue=${items.filter(i => i.result?.document?.id).map(i => i.result!.document.id).join(',')}`}
                           className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-all"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
@@ -481,7 +481,7 @@ function DocumentUploadContent() {
                       </Badge>
                       {item.result?.document?.id && (
                         <Link
-                          href={`/jamaah/review/${item.result.document.id}`}
+                          href={`/jamaah/review/${item.result.document.id}?queue=${items.filter(i => i.result?.document?.id).map(i => i.result!.document.id).join(',')}`}
                           className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-all"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
@@ -504,7 +504,7 @@ function DocumentUploadContent() {
                       <Badge variant="danger">{item.error || 'Gagal'}</Badge>
                       {item.result?.document?.id && (
                         <Link
-                          href={`/jamaah/review/${item.result.document.id}`}
+                          href={`/jamaah/review/${item.result.document.id}?queue=${items.filter(i => i.result?.document?.id).map(i => i.result!.document.id).join(',')}`}
                           className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-all"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
@@ -536,6 +536,33 @@ function DocumentUploadContent() {
               </div>
             ))}
           </div>
+
+          {/* Sequential Batch Review CTA Banner */}
+          {items.some(i => i.result?.document?.id) && (
+            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                  {items.filter(i => i.result?.document?.id).length}
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">
+                    {items.filter(i => i.result?.document?.id).length} Dokumen Siap Diverifikasi Berurutan
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Setelah satu dokumen disimpan, sistem akan otomatis beralih ke dokumen berikutnya.
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href={`/jamaah/review/${items.find(i => i.result?.document?.id)?.result?.document.id}?queue=${items.filter(i => i.result?.document?.id).map(i => i.result!.document.id).join(',')}`}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-900/20 flex items-center justify-center gap-2 transition-all shrink-0"
+              >
+                <span>Mulai Review Berurutan (1 dari {items.filter(i => i.result?.document?.id).length})</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </div>

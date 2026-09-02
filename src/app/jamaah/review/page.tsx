@@ -40,13 +40,25 @@ export default function DocumentReviewQueuePage() {
           </p>
         </div>
 
-        <Link
-          href="/jamaah/upload"
-          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-900/20 flex items-center gap-2"
-        >
-          <UploadCloud className="w-4 h-4" />
-          <span>Upload Dokumen Baru</span>
-        </Link>
+        <div className="flex items-center gap-3">
+          {pendingDocs.length > 0 && (
+            <Link
+              href={`/jamaah/review/${pendingDocs[0].id}?queue=${pendingDocs.map(d => d.id).join(',')}`}
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-900/20 flex items-center gap-2 transition-all"
+            >
+              <span>Mulai Review Berurutan ({pendingDocs.length} Dokumen)</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          )}
+
+          <Link
+            href="/jamaah/upload"
+            className="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-2 transition-all"
+          >
+            <UploadCloud className="w-4 h-4 text-slate-500" />
+            <span>Upload Dokumen Baru</span>
+          </Link>
+        </div>
       </div>
 
       {/* Queue Table */}
@@ -108,7 +120,7 @@ export default function DocumentReviewQueuePage() {
                       </td>
                       <td className="p-4 text-center">
                         <Link
-                          href={`/jamaah/review/${doc.id}`}
+                          href={`/jamaah/review/${doc.id}?queue=${pendingDocs.map(d => d.id).join(',')}`}
                           className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-all"
                         >
                           <Eye className="w-3.5 h-3.5" />
