@@ -2,8 +2,10 @@ import mysql from 'mysql2/promise';
 
 let pool: mysql.Pool | null = null;
 
+const FALLBACK_DATABASE_URL = "mysql://4Yw4GkRotBX9KTA.root:SalWY1s1Nymm5Joj@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/test?ssl={\"rejectUnauthorized\":true}";
+
 export function getTiDBPool(): mysql.Pool | null {
-  const databaseUrl = process.env.DATABASE_URL || process.env.TIDB_DATABASE_URL;
+  const databaseUrl = process.env.DATABASE_URL || process.env.TIDB_DATABASE_URL || FALLBACK_DATABASE_URL;
   if (!databaseUrl) {
     return null;
   }

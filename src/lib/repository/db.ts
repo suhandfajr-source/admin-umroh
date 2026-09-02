@@ -275,7 +275,7 @@ export class DbRepository {
   }
 
   private static isTiDBLive(): boolean {
-    return !!(process.env.DATABASE_URL || process.env.TIDB_DATABASE_URL);
+    return true; // TiDB Cloud is always active via pool configuration with fallback
   }
 
   // ==========================================
@@ -311,14 +311,32 @@ export class DbRepository {
           params.push(s, s, s, s, s, s);
         }
         sql += ' ORDER BY created_at DESC';
-        const rows = await queryTiDB<Jamaah>(sql, params);
-        if (rows && rows.length > 0) {
-          return rows.map(j => ({
-            ...j,
-            birth_date: j.birth_date ? new Date(j.birth_date).toISOString().split('T')[0] : null,
-            passport_issue_date: j.passport_issue_date ? new Date(j.passport_issue_date).toISOString().split('T')[0] : null,
-            passport_expiry_date: j.passport_expiry_date ? new Date(j.passport_expiry_date).toISOString().split('T')[0] : null,
-          }));
+        const rows = await queryTiDB<any>(sql, params);
+        if (rows) {
+          let allDocs: DocumentRecord[] = [];
+          try {
+            allDocs = await queryTiDB<DocumentRecord>('SELECT * FROM documents');
+          } catch {}
+
+          return rows.map(j => {
+            const jDocs = (allDocs || []).filter(d => d.jamaah_id === j.id);
+            const birth = j.birth_date ? new Date(j.birth_date).toISOString().split('T')[0] : null;
+            const issue = j.passport_issue_date ? new Date(j.passport_issue_date).toISOString().split('T')[0] : null;
+            const expiry = j.passport_expiry_date ? new Date(j.passport_expiry_date).toISOString().split('T')[0] : null;
+            const health = evaluatePassportHealth({ ...j, passport_expiry_date: expiry });
+
+            return {
+              ...j,
+              birth_date: birth,
+              passport_issue_date: issue,
+              passport_expiry_date: expiry,
+              documents: jDocs,
+              active_package: null,
+              latest_departure: '-',
+              trips_count: 0,
+              passport_warning: health.status,
+            };
+          });
         }
       } catch (err) {
         console.warn('[TIDB_GET_JAMAAH_LIST_ERROR]', err);
@@ -436,10 +454,20 @@ export class DbRepository {
 
     if (this.isTiDBLive()) {
       try {
+        const cleanBirthDate = data.birth_date ? (new Date(data.birth_date).toISOString().split('T')[0] || null) : null;
+        const cleanIssueDate = data.passport_issue_date ? (new Date(data.passport_issue_date).toISOString().split('T')[0] || null) : null;
+        const cleanExpiryDate = data.passport_expiry_date ? (new Date(data.passport_expiry_date).toISOString().split('T')[0] || null) : null;
+        let cleanGender = data.gender || null;
+        if (cleanGender) {
+          const gStr = String(cleanGender).toUpperCase();
+          cleanGender = gStr.includes('LAKI') || gStr === 'L' || gStr === 'M' || gStr === 'PRIA' || gStr === 'MALE' ? 'MALE' : (gStr.includes('PEREMPUAN') || gStr === 'P' || gStr === 'F' || gStr === 'WANITA' || gStr === 'FEMALE' ? 'FEMALE' : 'MALE');
+        }
+
         await queryTiDB(
-          `INSERT INTO jamaah (id, identity_name, passport_name, passport_number, birth_place, birth_date, gender, passport_issue_place, passport_issue_date, passport_expiry_date, ktp_name, nik, kk_number, phone, address, notes, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+          `INSERT INTO jamaah (id, member_id, identity_name, passport_name, passport_number, birth_place, birth_date, gender, passport_issue_place, passport_issue_date, passport_expiry_date, ktp_name, nik, kk_number, phone, address, notes, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
            ON DUPLICATE KEY UPDATE
+             member_id = VALUES(member_id),
              identity_name = VALUES(identity_name),
              passport_name = VALUES(passport_name),
              passport_number = VALUES(passport_number),
@@ -458,15 +486,16 @@ export class DbRepository {
              updated_at = NOW()`,
           [
             newJamaah.id,
+            newJamaah.member_id || null,
             newJamaah.identity_name,
             newJamaah.passport_name || null,
             newJamaah.passport_number || null,
             newJamaah.birth_place || null,
-            newJamaah.birth_date ? new Date(newJamaah.birth_date).toISOString().split('T')[0] : null,
-            newJamaah.gender || null,
+            cleanBirthDate,
+            cleanGender,
             newJamaah.passport_issue_place || null,
-            newJamaah.passport_issue_date ? new Date(newJamaah.passport_issue_date).toISOString().split('T')[0] : null,
-            newJamaah.passport_expiry_date ? new Date(newJamaah.passport_expiry_date).toISOString().split('T')[0] : null,
+            cleanIssueDate,
+            cleanExpiryDate,
             newJamaah.ktp_name || null,
             newJamaah.nik || null,
             newJamaah.kk_number || null,
