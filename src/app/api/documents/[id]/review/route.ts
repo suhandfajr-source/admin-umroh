@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DbRepository } from '@/lib/repository/db';
+import { StorageService } from '@/lib/repository/storage.service';
 import { KkFamilyMember } from '@/types/document.types';
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const docId = params.id;
+    const doc = await DbRepository.getDocumentWithExtraction(docId);
+    if (!doc) {
+      return NextResponse.json({ error: 'Dokumen tidak ditemukan.' }, { status: 404 });
+    }
+
+    const signedUrl = await StorageService.getSignedUrl(doc.storage_path);
+    return NextResponse.json({
+      ...doc,
+      signed_url: signedUrl,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
 
 export async function POST(
   req: NextRequest,

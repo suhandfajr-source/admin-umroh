@@ -23,18 +23,25 @@ export default function DocumentReviewWorkspacePage() {
   useEffect(() => {
     async function fetchReviewTarget() {
       try {
-        const [resDoc, resUrl] = await Promise.all([
-          fetch(`/api/documents/review-list`).then(r => r.json()),
-          fetch(`/api/documents/${docId}/signed-url`).then(r => r.json()),
-        ]);
-
-        const target = (resDoc || []).find((d: any) => d.id === docId);
-        if (target) {
-          setDocument(target);
-          setExtraction(target.extraction || null);
-        }
-        if (resUrl?.signed_url) {
-          setSignedUrl(resUrl.signed_url);
+        const res = await fetch(`/api/documents/${docId}/review`);
+        if (res.ok) {
+          const target = await res.json();
+          if (target && target.id) {
+            setDocument(target);
+            setExtraction(target.extraction || null);
+            if (target.signed_url) {
+              setSignedUrl(target.signed_url);
+            }
+          }
+        } else {
+          // Fallback check review list
+          const resList = await fetch(`/api/documents/review-list`).then(r => r.json());
+          const target = (resList || []).find((d: any) => d.id === docId);
+          if (target) {
+            setDocument(target);
+            setExtraction(target.extraction || null);
+            if (target.signed_url) setSignedUrl(target.signed_url);
+          }
         }
       } catch (err) {
         console.error('Fetch review doc error:', err);

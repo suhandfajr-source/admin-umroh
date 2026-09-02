@@ -58,6 +58,7 @@ import { ExportCleanupService } from '@/lib/export/cleanup-service';
 import { AuditService } from '@/lib/audit/audit-service';
 import fs from 'fs';
 import path from 'path';
+import { queryTiDB } from '@/lib/db/tidb';
 
 const DEFAULT_EQUIPMENT_ITEMS: EquipmentItem[] = [
   { id: 'eq_koper', name: 'Koper Bagasi', category: 'BAG', description: 'Koper bagasi 24 inch standar jamaah', requires_variant: false, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
@@ -273,6 +274,10 @@ export class DbRepository {
     return !!(url && !url.includes('dummy-umroh.supabase.co'));
   }
 
+  private static isTiDBLive(): boolean {
+    return !!(process.env.DATABASE_URL || process.env.TIDB_DATABASE_URL);
+  }
+
   // ==========================================
   // JAMAAH
   // ==========================================
@@ -294,6 +299,30 @@ export class DbRepository {
       
       const { data, error } = await query;
       if (!error && data) return data as Jamaah[];
+    }
+
+    if (this.isTiDBLive()) {
+      try {
+        let sql = 'SELECT * FROM jamaah WHERE deleted_at IS NULL';
+        const params: any[] = [];
+        if (filters?.search) {
+          const s = `%${filters.search}%`;
+          sql += ' AND (identity_name LIKE ? OR passport_name LIKE ? OR ktp_name LIKE ? OR passport_number LIKE ? OR nik LIKE ? OR phone LIKE ?)';
+          params.push(s, s, s, s, s, s);
+        }
+        sql += ' ORDER BY created_at DESC';
+        const rows = await queryTiDB<Jamaah>(sql, params);
+        if (rows && rows.length > 0) {
+          return rows.map(j => ({
+            ...j,
+            birth_date: j.birth_date ? new Date(j.birth_date).toISOString().split('T')[0] : null,
+            passport_issue_date: j.passport_issue_date ? new Date(j.passport_issue_date).toISOString().split('T')[0] : null,
+            passport_expiry_date: j.passport_expiry_date ? new Date(j.passport_expiry_date).toISOString().split('T')[0] : null,
+          }));
+        }
+      } catch (err) {
+        console.warn('[TIDB_GET_JAMAAH_LIST_ERROR]', err);
+      }
     }
 
     // In-memory query with full filter capabilities
@@ -349,6 +378,23 @@ export class DbRepository {
   }
 
   public static async getJamaahById(id: string): Promise<Jamaah | null> {
+    if (this.isTiDBLive()) {
+      try {
+        const rows = await queryTiDB<Jamaah>('SELECT * FROM jamaah WHERE id = ? AND deleted_at IS NULL LIMIT 1', [id]);
+        if (rows && rows.length > 0) {
+          const j = rows[0];
+          return {
+            ...j,
+            birth_date: j.birth_date ? new Date(j.birth_date).toISOString().split('T')[0] : null,
+            passport_issue_date: j.passport_issue_date ? new Date(j.passport_issue_date).toISOString().split('T')[0] : null,
+            passport_expiry_date: j.passport_expiry_date ? new Date(j.passport_expiry_date).toISOString().split('T')[0] : null,
+          };
+        }
+      } catch (err) {
+        console.warn('[TIDB_GET_JAMAAH_BY_ID_ERROR]', err);
+      }
+    }
+
     const list = await this.getJamaahList();
     const found = list.find(j => j.id === id);
     if (!found) return null;
@@ -387,6 +433,52 @@ export class DbRepository {
 
     globalStore.jamaah.push(newJamaah);
     syncStoreToDisk();
+
+    if (this.isTiDBLive()) {
+      try {
+        await queryTiDB(
+          `INSERT INTO jamaah (id, identity_name, passport_name, passport_number, birth_place, birth_date, gender, passport_issue_place, passport_issue_date, passport_expiry_date, ktp_name, nik, kk_number, phone, address, notes, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+           ON DUPLICATE KEY UPDATE
+             identity_name = VALUES(identity_name),
+             passport_name = VALUES(passport_name),
+             passport_number = VALUES(passport_number),
+             birth_place = VALUES(birth_place),
+             birth_date = VALUES(birth_date),
+             gender = VALUES(gender),
+             passport_issue_place = VALUES(passport_issue_place),
+             passport_issue_date = VALUES(passport_issue_date),
+             passport_expiry_date = VALUES(passport_expiry_date),
+             ktp_name = VALUES(ktp_name),
+             nik = VALUES(nik),
+             kk_number = VALUES(kk_number),
+             phone = VALUES(phone),
+             address = VALUES(address),
+             notes = VALUES(notes),
+             updated_at = NOW()`,
+          [
+            newJamaah.id,
+            newJamaah.identity_name,
+            newJamaah.passport_name || null,
+            newJamaah.passport_number || null,
+            newJamaah.birth_place || null,
+            newJamaah.birth_date ? new Date(newJamaah.birth_date).toISOString().split('T')[0] : null,
+            newJamaah.gender || null,
+            newJamaah.passport_issue_place || null,
+            newJamaah.passport_issue_date ? new Date(newJamaah.passport_issue_date).toISOString().split('T')[0] : null,
+            newJamaah.passport_expiry_date ? new Date(newJamaah.passport_expiry_date).toISOString().split('T')[0] : null,
+            newJamaah.ktp_name || null,
+            newJamaah.nik || null,
+            newJamaah.kk_number || null,
+            newJamaah.phone || null,
+            newJamaah.address || null,
+            newJamaah.notes || null,
+          ]
+        );
+      } catch (tidbErr) {
+        console.warn('[TIDB_CREATE_JAMAAH_ERROR]', tidbErr);
+      }
+    }
 
     if (this.isSupabaseLive()) {
       const supabase = createAdminClient();
@@ -557,6 +649,60 @@ export class DbRepository {
     globalStore.document_extractions.push(newExtraction);
     syncStoreToDisk();
 
+    if (this.isTiDBLive()) {
+      try {
+        await queryTiDB(
+          `INSERT INTO documents (id, jamaah_id, document_type, storage_path, original_file_name, mime_type, file_size, status, is_current, uploaded_at, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())
+           ON DUPLICATE KEY UPDATE
+             jamaah_id = VALUES(jamaah_id),
+             document_type = VALUES(document_type),
+             storage_path = VALUES(storage_path),
+             original_file_name = VALUES(original_file_name),
+             mime_type = VALUES(mime_type),
+             file_size = VALUES(file_size),
+             status = VALUES(status),
+             updated_at = NOW()`,
+          [
+            newDoc.id,
+            newDoc.jamaah_id,
+            newDoc.document_type,
+            newDoc.storage_path,
+            newDoc.original_file_name,
+            newDoc.mime_type,
+            newDoc.file_size,
+            newDoc.status,
+            newDoc.is_current ? 1 : 0,
+          ]
+        );
+
+        await queryTiDB(
+          `INSERT INTO document_extractions (id, document_id, raw_extraction, extracted_fields, classification_result, confidence_score, mrz_data, review_status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+           ON DUPLICATE KEY UPDATE
+             raw_extraction = VALUES(raw_extraction),
+             extracted_fields = VALUES(extracted_fields),
+             classification_result = VALUES(classification_result),
+             confidence_score = VALUES(confidence_score),
+             mrz_data = VALUES(mrz_data),
+             review_status = VALUES(review_status),
+             updated_at = NOW()`,
+          [
+            newExtraction.id,
+            newExtraction.document_id,
+            newExtraction.raw_extraction,
+            JSON.stringify(newExtraction.extracted_fields || {}),
+            newExtraction.classification_result,
+            newExtraction.confidence_score,
+            newExtraction.mrz_data ? JSON.stringify(newExtraction.mrz_data) : null,
+            newExtraction.review_status,
+          ]
+        );
+      } catch (tidbErr) {
+        console.warn('[TIDB_SAVE_DOC_ERROR]', tidbErr);
+      }
+    }
+
     if (this.isSupabaseLive()) {
       const supabase = createAdminClient();
       await supabase.from('documents').insert(newDoc);
@@ -591,6 +737,64 @@ export class DbRepository {
 
   public static async getDocumentWithExtraction(docId: string): Promise<(DocumentRecord & { extraction?: DocumentExtraction | null }) | null> {
     syncStoreFromDisk();
+
+    if (this.isTiDBLive()) {
+      try {
+        const rows: any[] = await queryTiDB(
+          `SELECT d.*, e.id as ext_id, e.raw_extraction, e.extracted_fields, e.classification_result, e.confidence_score, e.mrz_data, e.review_status, e.review_notes
+           FROM documents d
+           LEFT JOIN document_extractions e ON d.id = e.document_id
+           WHERE d.id = ? LIMIT 1`,
+          [docId]
+        );
+        if (rows && rows.length > 0) {
+          const row = rows[0];
+          let fields = row.extracted_fields;
+          if (typeof fields === 'string') {
+            try { fields = JSON.parse(fields); } catch {}
+          }
+          let mrz = row.mrz_data;
+          if (typeof mrz === 'string') {
+            try { mrz = JSON.parse(mrz); } catch {}
+          }
+
+          const doc: DocumentRecord = {
+            id: row.id,
+            jamaah_id: row.jamaah_id,
+            document_type: row.document_type,
+            storage_path: row.storage_path,
+            original_file_name: row.original_file_name,
+            mime_type: row.mime_type,
+            file_size: Number(row.file_size || 0),
+            status: row.status,
+            is_current: !!row.is_current,
+            uploaded_at: row.uploaded_at ? new Date(row.uploaded_at).toISOString() : new Date().toISOString(),
+            confirmed_at: row.confirmed_at ? new Date(row.confirmed_at).toISOString() : null,
+            created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+            updated_at: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
+          };
+
+          const extraction: DocumentExtraction | null = row.ext_id ? {
+            id: row.ext_id,
+            document_id: row.id,
+            raw_extraction: row.raw_extraction,
+            extracted_fields: fields || {},
+            classification_result: row.classification_result,
+            confidence_score: Number(row.confidence_score || 0),
+            mrz_data: mrz,
+            review_status: row.review_status,
+            review_notes: row.review_notes,
+            created_at: doc.created_at,
+            updated_at: doc.updated_at,
+          } : null;
+
+          return { ...doc, extraction };
+        }
+      } catch (err) {
+        console.warn('[TIDB_GET_DOC_ERROR]', err);
+      }
+    }
+
     const doc = globalStore.documents.find(d => d.id === docId);
     if (!doc) return null;
     const extraction = globalStore.document_extractions.find(e => e.document_id === docId);
@@ -602,6 +806,65 @@ export class DbRepository {
 
   public static async getPendingReviewDocuments(): Promise<(DocumentRecord & { extraction?: DocumentExtraction | null })[]> {
     syncStoreFromDisk();
+
+    if (this.isTiDBLive()) {
+      try {
+        const rows: any[] = await queryTiDB(
+          `SELECT d.*, e.id as ext_id, e.raw_extraction, e.extracted_fields, e.classification_result, e.confidence_score, e.mrz_data, e.review_status, e.review_notes
+           FROM documents d
+           LEFT JOIN document_extractions e ON d.id = e.document_id
+           WHERE d.status = 'NEEDS_REVIEW'
+           ORDER BY d.created_at DESC`
+        );
+        if (rows && rows.length > 0) {
+          return rows.map(row => {
+            let fields = row.extracted_fields;
+            if (typeof fields === 'string') {
+              try { fields = JSON.parse(fields); } catch {}
+            }
+            let mrz = row.mrz_data;
+            if (typeof mrz === 'string') {
+              try { mrz = JSON.parse(mrz); } catch {}
+            }
+
+            const doc: DocumentRecord = {
+              id: row.id,
+              jamaah_id: row.jamaah_id,
+              document_type: row.document_type,
+              storage_path: row.storage_path,
+              original_file_name: row.original_file_name,
+              mime_type: row.mime_type,
+              file_size: Number(row.file_size || 0),
+              status: row.status,
+              is_current: !!row.is_current,
+              uploaded_at: row.uploaded_at ? new Date(row.uploaded_at).toISOString() : new Date().toISOString(),
+              confirmed_at: row.confirmed_at ? new Date(row.confirmed_at).toISOString() : null,
+              created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+              updated_at: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
+            };
+
+            const extraction: DocumentExtraction | null = row.ext_id ? {
+              id: row.ext_id,
+              document_id: row.id,
+              raw_extraction: row.raw_extraction,
+              extracted_fields: fields || {},
+              classification_result: row.classification_result,
+              confidence_score: Number(row.confidence_score || 0),
+              mrz_data: mrz,
+              review_status: row.review_status,
+              review_notes: row.review_notes,
+              created_at: doc.created_at,
+              updated_at: doc.updated_at,
+            } : null;
+
+            return { ...doc, extraction };
+          });
+        }
+      } catch (err) {
+        console.warn('[TIDB_GET_PENDING_DOCS_ERROR]', err);
+      }
+    }
+
     const docs = globalStore.documents.filter(d => d.status === 'NEEDS_REVIEW');
     return docs.map(d => ({
       ...d,
@@ -660,6 +923,16 @@ export class DbRepository {
         globalStore.document_extractions[extIdx].review_status = 'REJECTED';
       }
       syncStoreToDisk();
+
+      if (this.isTiDBLive()) {
+        try {
+          await queryTiDB(`UPDATE documents SET status = 'FAILED', updated_at = NOW() WHERE id = ?`, [docId]);
+          await queryTiDB(`UPDATE document_extractions SET review_status = 'REJECTED', updated_at = NOW() WHERE document_id = ?`, [docId]);
+        } catch (tidbErr) {
+          console.warn('[TIDB_REJECT_DOC_ERROR]', tidbErr);
+        }
+      }
+
       return { success: true };
     }
 
@@ -716,6 +989,21 @@ export class DbRepository {
         jamaahName: created.passport_name || created.identity_name,
         afterData: { ...fields, document_id: doc.id, document_type: doc.document_type },
       });
+
+      if (this.isTiDBLive()) {
+        try {
+          await queryTiDB(
+            `UPDATE documents SET jamaah_id = ?, storage_path = ?, status = 'CONFIRMED', confirmed_at = NOW(), updated_at = NOW() WHERE id = ?`,
+            [created.id, finalStoragePath, docId]
+          );
+          await queryTiDB(
+            `UPDATE document_extractions SET review_status = 'CONFIRMED', updated_at = NOW() WHERE document_id = ?`,
+            [docId]
+          );
+        } catch (tidbErr) {
+          console.warn('[TIDB_CONFIRM_CREATE_DOC_ERROR]', tidbErr);
+        }
+      }
 
       return { success: true, jamaah: created };
     }
@@ -778,6 +1066,21 @@ export class DbRepository {
       if (fields.address && !existingJamaah.address) updatedFields.address = fields.address;
 
       const updated = await this.updateJamaah(targetJamaahId, updatedFields);
+
+      if (this.isTiDBLive()) {
+        try {
+          await queryTiDB(
+            `UPDATE documents SET jamaah_id = ?, storage_path = ?, status = 'CONFIRMED', is_current = 1, confirmed_at = NOW(), updated_at = NOW() WHERE id = ?`,
+            [targetJamaahId, finalStoragePath, docId]
+          );
+          await queryTiDB(
+            `UPDATE document_extractions SET review_status = 'CONFIRMED', updated_at = NOW() WHERE document_id = ?`,
+            [docId]
+          );
+        } catch (tidbErr) {
+          console.warn('[TIDB_CONFIRM_UPDATE_DOC_ERROR]', tidbErr);
+        }
+      }
 
       await AuditService.logMutation({
         action: doc.document_type === 'PASSPORT' ? 'PASSPORT_REPLACED' : 'DOCUMENT_CONFIRMED',
