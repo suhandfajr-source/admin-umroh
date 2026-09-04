@@ -15,7 +15,12 @@ import {
   Eye,
   PenTool,
   Upload,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Maximize2,
+  Minimize2,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw
 } from 'lucide-react';
 import { 
   getStoredLetterSettings, 
@@ -56,6 +61,8 @@ export const PassportRecommendationModal: React.FC<PassportRecommendationModalPr
 }) => {
   const [settings, setSettings] = useState<LetterSettings>(getStoredLetterSettings());
   const [showSettingsEdit, setShowSettingsEdit] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState<number>(0.85);
 
   // Admin form inputs
   const [letterNumber, setLetterNumber] = useState('');
@@ -77,6 +84,28 @@ export const PassportRecommendationModal: React.FC<PassportRecommendationModalPr
   // Setting pattern edit form
   const [formatPattern, setFormatPattern] = useState('');
   const [nextSeq, setNextSeq] = useState<number>(1);
+
+  // Auto adjust default zoom when fullscreen changes
+  useEffect(() => {
+    if (isFullscreen) {
+      setZoomLevel(1.0);
+    } else {
+      setZoomLevel(0.85);
+    }
+  }, [isFullscreen]);
+
+  // Handle ESC key to exit fullscreen or close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isFullscreen) {
+          setIsFullscreen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   // Initialize data on open or jamaah change
   useEffect(() => {
@@ -188,41 +217,72 @@ export const PassportRecommendationModal: React.FC<PassportRecommendationModalPr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center ${isFullscreen ? 'p-0 bg-slate-950/80' : 'p-2 sm:p-4 md:p-6 bg-slate-950/70'} backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto`}>
       {/* Hidden container specifically for clean browser printing */}
       <div className="hidden print:block fixed inset-0 z-[9999] bg-white p-0 m-0">
         <PassportRecommendationPrintView data={letterData} forPrintOnly={true} />
       </div>
 
       {/* Screen Interactive Modal */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-5xl w-full max-h-[94vh] flex flex-col overflow-hidden print:hidden animate-in zoom-in-95 duration-150">
+      <div className={`bg-white ${isFullscreen ? 'w-full h-full max-w-none max-h-none rounded-none border-0' : 'rounded-2xl border border-slate-200 shadow-2xl max-w-6xl w-full h-[94vh]'} flex flex-col overflow-hidden print:hidden animate-in zoom-in-95 duration-150`}>
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+        <div className="px-5 py-3 sm:px-6 sm:py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900 leading-tight">
-                Cetak Surat Rekomendasi Paspor
+              <h2 className="text-sm sm:text-base font-bold text-slate-900 leading-tight flex items-center gap-2">
+                <span>Cetak Surat Rekomendasi Paspor</span>
+                {isFullscreen && (
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    Full Screen
+                  </span>
+                )}
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-[11px] sm:text-xs text-slate-500">
                 Data KTP/KK ditarik otomatis • Admin mengisi nomor, tanggal surat & keberangkatan
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               onClick={() => setShowSettingsEdit(!showSettingsEdit)}
-              className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all"
+              className="px-2.5 sm:px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all"
+              title="Sesuaikan format nomor & data penandatangan"
             >
               <Settings2 className="w-3.5 h-3.5 text-slate-500" />
-              <span>Format & Info</span>
+              <span className="hidden sm:inline">Format & Info</span>
             </button>
+
+            {/* Fullscreen Toggle Button */}
+            <button
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border shadow-2xs transition-all ${
+                isFullscreen
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                  : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
+              }`}
+              title={isFullscreen ? 'Keluar Mode Layar Penuh (Esc)' : 'Buka Layar Penuh (Full Screen)'}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="hidden sm:inline">Perkecil</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5 text-slate-600" />
+                  <span className="hidden sm:inline">Full Screen</span>
+                </>
+              )}
+            </button>
+
             <button
               onClick={onClose}
               className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition-colors"
+              title="Tutup"
             >
               <X className="w-5 h-5" />
             </button>
@@ -320,9 +380,9 @@ export const PassportRecommendationModal: React.FC<PassportRecommendationModalPr
         )}
 
         {/* Main Body: Two-Column Form & Live Preview */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className={`flex-1 overflow-hidden p-3 sm:p-5 grid grid-cols-1 ${isFullscreen ? 'lg:grid-cols-12 xl:grid-cols-12' : 'lg:grid-cols-12'} gap-4 sm:gap-6 min-h-0`}>
           {/* Left Column: Form Controls */}
-          <div className="lg:col-span-5 space-y-4">
+          <div className={`${isFullscreen ? 'lg:col-span-5 xl:col-span-4' : 'lg:col-span-5'} h-full overflow-y-auto pr-1 sm:pr-2 space-y-4`}>
             {/* Auto Data Card */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5">
               <div className="flex items-center justify-between pb-2 border-b border-slate-200">
@@ -530,15 +590,86 @@ export const PassportRecommendationModal: React.FC<PassportRecommendationModalPr
           </div>
 
           {/* Right Column: Live A4 Preview Container */}
-          <div className="lg:col-span-7 bg-slate-100/80 border border-slate-200 rounded-2xl p-4 overflow-y-auto max-h-[640px] flex justify-center">
-            <div className="transform scale-[0.78] sm:scale-[0.84] origin-top">
-              <PassportRecommendationPrintView data={letterData} />
+          <div className={`${isFullscreen ? 'lg:col-span-7 xl:col-span-8' : 'lg:col-span-7'} h-full flex flex-col min-h-0 bg-slate-900/5 rounded-2xl border border-slate-200/80 overflow-hidden shadow-inner`}>
+            {/* Preview Top Toolbar with Zoom Controls */}
+            <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <Eye className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="font-bold text-slate-800 text-[11px] sm:text-xs">Pratinjau Live Dokumen (A4)</span>
+                <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-mono hidden sm:inline">210 × 297 mm</span>
+              </div>
+
+              {/* Zoom Controls */}
+              <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-lg p-0.5 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel(prev => Math.max(0.4, Number((prev - 0.1).toFixed(2))))}
+                  title="Perkecil Zoom"
+                  className="p-1 hover:bg-slate-100 text-slate-600 rounded transition-colors"
+                >
+                  <ZoomOut className="w-3.5 h-3.5" />
+                </button>
+                
+                <span className="font-mono font-bold text-slate-700 text-[11px] min-w-[38px] text-center px-1 select-none">
+                  {Math.round(zoomLevel * 100)}%
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel(prev => Math.min(1.5, Number((prev + 0.1).toFixed(2))))}
+                  title="Perbesar Zoom"
+                  className="p-1 hover:bg-slate-100 text-slate-600 rounded transition-colors"
+                >
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </button>
+
+                <div className="w-px h-3 bg-slate-200 mx-0.5" />
+
+                {/* Quick Zoom Presets */}
+                <div className="flex items-center gap-0.5">
+                  {[0.75, 0.85, 1.0].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setZoomLevel(preset)}
+                      className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors ${
+                        Math.abs(zoomLevel - preset) < 0.04
+                          ? 'bg-emerald-600 text-white'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      {Math.round(preset * 100)}%
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setZoomLevel(isFullscreen ? 1.0 : 0.85)}
+                    title="Reset Zoom Ideal"
+                    className="p-1 hover:bg-slate-100 text-slate-500 rounded transition-colors"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Scaled Preview Canvas */}
+            <div className="flex-1 overflow-auto p-4 sm:p-6 flex justify-center items-start bg-slate-200/60">
+              <div 
+                className="transition-transform duration-100 ease-out origin-top shadow-2xl rounded-sm"
+                style={{
+                  transform: `scale(${zoomLevel})`,
+                  marginBottom: zoomLevel < 1 ? `-${Math.round((1 - zoomLevel) * 297 * 3.78)}px` : '20px'
+                }}
+              >
+                <PassportRecommendationPrintView data={letterData} />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Modal Footer Actions */}
-        <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/80">
+        <div className="px-5 py-3 sm:px-6 sm:py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/80">
           <div className="text-xs text-slate-500">
             <span>Kop: <strong>{useUploadedLetterhead && settings.letterheadImageUrl ? 'Template Gambar' : 'Standar'}</strong> • TTD: <strong>{useDigitalSignature && settings.signatureImageUrl ? 'Digital Terpasang' : 'Stempel Manual'}</strong></span>
           </div>
@@ -554,7 +685,7 @@ export const PassportRecommendationModal: React.FC<PassportRecommendationModalPr
             <button
               type="button"
               onClick={handlePrint}
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-900/20 flex items-center gap-2 transition-all"
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-900/20 flex items-center gap-2 transition-all cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               <span>Cetak / Print PDF</span>
