@@ -10,6 +10,11 @@ export interface LetterSettings {
   hasSignatureImage: boolean;
   useDigitalSignature: boolean;
 
+  // Custom Word .docx Template
+  customDocxTemplateBase64?: string;
+  customDocxTemplateName?: string;
+  hasCustomDocxTemplate?: boolean;
+
   // Format & Information
   letterNumberFormat: string; // e.g. "{NO}/REK-PASPOR/PPIU/{ROMAN_MONTH}/{YEAR}"
   lastNumberSequence: number;
@@ -67,6 +72,9 @@ export const DEFAULT_LETTER_SETTINGS: LetterSettings = {
   signatureImageUrl: '',
   hasSignatureImage: false,
   useDigitalSignature: true,
+  customDocxTemplateBase64: '',
+  customDocxTemplateName: '',
+  hasCustomDocxTemplate: false,
   letterNumberFormat: '{NO}/REK-PASPOR/PPIU/{ROMAN_MONTH}/{YEAR}',
   lastNumberSequence: 1,
   city: 'Bogor',
@@ -93,6 +101,7 @@ export function getStoredLetterSettings(): LetterSettings {
       ...parsed,
       hasLetterheadImage: !!parsed.letterheadImageUrl,
       hasSignatureImage: !!parsed.signatureImageUrl,
+      hasCustomDocxTemplate: !!parsed.customDocxTemplateBase64,
     };
   } catch {
     return DEFAULT_LETTER_SETTINGS;

@@ -29,6 +29,7 @@ import {
   PassportRecommendationLetterData, 
   LetterSettings 
 } from '@/lib/recommendation-letter';
+import { downloadPassportDocx } from '@/lib/docx-generator';
 import { PassportRecommendationPrintView } from './PassportRecommendationPrintView';
 
 interface PassportRecommendationModalProps {
@@ -204,6 +205,25 @@ export const PassportRecommendationModal: React.FC<PassportRecommendationModalPr
     city: city || settings.city,
     signatoryName: signatoryName || settings.signatoryName,
     signatoryRole: signatoryRole || settings.signatoryRole,
+  };
+
+  const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
+
+  const handleDownloadDocx = async () => {
+    setIsGeneratingDocx(true);
+    try {
+      // Increment sequence for next time
+      saveStoredLetterSettings({
+        lastNumberSequence: Number(nextSeq) + 1,
+      });
+      setNextSeq(prev => prev + 1);
+
+      await downloadPassportDocx(letterData, settings.customDocxTemplateBase64);
+    } catch (err) {
+      console.error('Failed to generate docx:', err);
+    } finally {
+      setIsGeneratingDocx(false);
+    }
   };
 
   const handlePrint = () => {
@@ -674,18 +694,28 @@ export const PassportRecommendationModal: React.FC<PassportRecommendationModalPr
             <span>Kop: <strong>{useUploadedLetterhead && settings.letterheadImageUrl ? 'Template Gambar' : 'Standar'}</strong> • TTD: <strong>{useDigitalSignature && settings.signatureImageUrl ? 'Digital Terpasang' : 'Stempel Manual'}</strong></span>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all"
+              className="px-3 sm:px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all"
             >
               Batal
             </button>
             <button
               type="button"
+              onClick={handleDownloadDocx}
+              disabled={isGeneratingDocx}
+              className="px-3.5 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-900/15 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              title="Download file Microsoft Word (.docx) dengan data terisi otomatis"
+            >
+              <FileText className="w-4 h-4 text-blue-200" />
+              <span>{isGeneratingDocx ? 'Membuat...' : 'Download Word (.docx)'}</span>
+            </button>
+            <button
+              type="button"
               onClick={handlePrint}
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-900/20 flex items-center gap-2 transition-all cursor-pointer"
+              className="px-4 sm:px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-900/20 flex items-center gap-2 transition-all cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               <span>Cetak / Print PDF</span>

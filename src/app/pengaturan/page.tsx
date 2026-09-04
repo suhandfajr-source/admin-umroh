@@ -19,7 +19,8 @@ import {
   PenTool,
   Trash2,
   Eye,
-  Check
+  Check,
+  Download
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { 
@@ -29,6 +30,7 @@ import {
   formatLetterNumber,
   compressImageFile
 } from '@/lib/recommendation-letter';
+import { downloadSamplePassportDocxTemplate } from '@/lib/docx-generator';
 
 export default function SettingsPage() {
   const [letterSettings, setLetterSettings] = useState<LetterSettings>(getStoredLetterSettings());
@@ -36,6 +38,7 @@ export default function SettingsPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploadingLetterhead, setIsUploadingLetterhead] = useState(false);
   const [isUploadingSignature, setIsUploadingSignature] = useState(false);
+  const [isUploadingDocx, setIsUploadingDocx] = useState(false);
   const [letterheadImgError, setLetterheadImgError] = useState(false);
   const [signatureImgError, setSignatureImgError] = useState(false);
 
@@ -49,6 +52,55 @@ export default function SettingsPage() {
     setLetterSettings(updated);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  // Upload DOCX Master Template
+  const handleDocxUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError(null);
+    if (!file.name.toLowerCase().endsWith('.docx')) {
+      setUploadError('File harus berupa dokumen Microsoft Word (.docx)');
+      return;
+    }
+
+    setIsUploadingDocx(true);
+    const reader = new FileReader();
+    reader.onerror = () => {
+      setUploadError('Gagal membaca file .docx');
+      setIsUploadingDocx(false);
+    };
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      const updated = saveStoredLetterSettings({
+        customDocxTemplateBase64: base64,
+        customDocxTemplateName: file.name,
+        hasCustomDocxTemplate: true,
+      });
+      setLetterSettings(updated);
+      setIsUploadingDocx(false);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleRemoveDocx = () => {
+    const updated = saveStoredLetterSettings({
+      customDocxTemplateBase64: '',
+      customDocxTemplateName: '',
+      hasCustomDocxTemplate: false,
+    });
+    setLetterSettings(updated);
+  };
+
+  const handleDownloadSampleDocx = async () => {
+    try {
+      await downloadSamplePassportDocxTemplate();
+    } catch (err) {
+      console.error('Failed to download sample docx:', err);
+    }
   };
 
   // Upload Letterhead Image (A4 Template) with auto compression
@@ -378,6 +430,84 @@ export default function SettingsPage() {
                     </label>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* Slot C: Master Template Microsoft Word (.docx) */}
+          <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-200/80 space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-blue-200/60">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-700" />
+                <span className="font-bold text-slate-800 text-xs">
+                  3. Master Template Microsoft Word (.docx)
+                </span>
+              </div>
+              {letterSettings.hasCustomDocxTemplate ? (
+                <span className="text-[10px] text-blue-700 bg-blue-100 font-bold px-2 py-0.5 rounded-full self-start sm:self-auto">
+                  ✓ Template Kustom: {letterSettings.customDocxTemplateName || 'template.docx'}
+                </span>
+              ) : (
+                <span className="text-[10px] text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-full self-start sm:self-auto">
+                  Template Standar Sistem
+                </span>
+              )}
+            </div>
+
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              Anda dapat mengunggah file template Microsoft Word (<strong>.docx</strong>) resmi travel Anda lengkap dengan kop surat dan format tabel. Sistem akan otomatis mengisi variabel nama jamaah, NIK, nomor surat, dan tanggal saat diunduh.
+            </p>
+
+            {/* Actions */}
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={handleDownloadSampleDocx}
+                className="px-3.5 py-2 bg-white hover:bg-slate-50 text-blue-700 border border-blue-300 rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5 text-blue-600" />
+                <span>Download Contoh Template (.docx)</span>
+              </button>
+
+              <label className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold cursor-pointer shadow-2xs transition-all flex items-center gap-1.5">
+                <Upload className="w-3.5 h-3.5" />
+                <span>{letterSettings.hasCustomDocxTemplate ? 'Ganti Template (.docx)' : 'Upload Template (.docx)'}</span>
+                <input
+                  type="file"
+                  accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  onChange={handleDocxUpload}
+                  className="hidden"
+                />
+              </label>
+
+              {letterSettings.hasCustomDocxTemplate && (
+                <button
+                  type="button"
+                  onClick={handleRemoveDocx}
+                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-300 rounded-xl transition-all"
+                  title="Hapus dan Kembalikan ke Template Standar"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Tag Cheatsheet */}
+            <div className="p-3 bg-white/90 rounded-xl border border-blue-100 text-[11px] text-slate-600 space-y-1.5">
+              <span className="font-bold text-slate-700 block">Daftar Tag Variabel yang Otomatis Terisi di Word:</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 font-mono text-[10px]">
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{nomor_surat}'}</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{tanggal_surat}'}</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{nama_jamaah}'}</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{nik}'}</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{tempat_lahir}'}</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{tanggal_lahir}'}</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{jenis_kelamin}'}</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{alamat}'}</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{keperluan}'}</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{kantor_imigrasi}'}</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{tanggal_keberangkatan}'}</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{nama_pimpinan}'}</span>
               </div>
             </div>
           </div>
