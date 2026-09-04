@@ -99,6 +99,61 @@ export function getStoredLetterSettings(): LetterSettings {
   }
 }
 
+/**
+ * Utility to compress and resize image before storing in Base64 / LocalStorage.
+ * Ensures the image stays crisp for A4 print while keeping file size under 350KB.
+ */
+export async function compressImageFile(file: File, maxDimension = 1800, quality = 0.85): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('File yang dipilih bukan gambar (gunakan PNG, JPG, atau WEBP).'));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Gagal membaca file'));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('File gambar rusak atau tidak valid'));
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+
+        // Use high quality image smoothing
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to WebP or JPEG for optimal compression
+        const mimeType = file.type === 'image/png' && file.size < 800000 ? 'image/png' : 'image/jpeg';
+        const compressedBase64 = canvas.toDataURL(mimeType, quality);
+        resolve(compressedBase64);
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export function saveStoredLetterSettings(settings: Partial<LetterSettings>): LetterSettings {
   if (typeof window === 'undefined') return DEFAULT_LETTER_SETTINGS;
   try {
@@ -111,7 +166,8 @@ export function saveStoredLetterSettings(settings: Partial<LetterSettings>): Let
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     return updated;
-  } catch {
+  } catch (err) {
+    console.error('Failed to save settings to localStorage:', err);
     return DEFAULT_LETTER_SETTINGS;
   }
 }

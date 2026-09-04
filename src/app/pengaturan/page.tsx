@@ -26,12 +26,18 @@ import {
   getStoredLetterSettings, 
   saveStoredLetterSettings, 
   LetterSettings,
-  formatLetterNumber 
+  formatLetterNumber,
+  compressImageFile
 } from '@/lib/recommendation-letter';
 
 export default function SettingsPage() {
   const [letterSettings, setLetterSettings] = useState<LetterSettings>(getStoredLetterSettings());
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploadingLetterhead, setIsUploadingLetterhead] = useState(false);
+  const [isUploadingSignature, setIsUploadingSignature] = useState(false);
+  const [letterheadImgError, setLetterheadImgError] = useState(false);
+  const [signatureImgError, setSignatureImgError] = useState(false);
 
   useEffect(() => {
     setLetterSettings(getStoredLetterSettings());
@@ -45,22 +51,33 @@ export default function SettingsPage() {
     setTimeout(() => setSaveSuccess(false), 3000);
   };
 
-  // Upload Letterhead Image (A4 Template)
-  const handleLetterheadUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload Letterhead Image (A4 Template) with auto compression
+  const handleLetterheadUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
+    setUploadError(null);
+    setIsUploadingLetterhead(true);
+    setLetterheadImgError(false);
+
+    try {
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Format file harus berupa gambar (PNG / JPG / WEBP). File PDF tidak bisa digunakan sebagai gambar template.');
+      }
+      const compressedBase64 = await compressImageFile(file, 2000, 0.88);
       const updated = saveStoredLetterSettings({
-        letterheadImageUrl: base64,
+        letterheadImageUrl: compressedBase64,
         hasLetterheadImage: true,
       });
       setLetterSettings(updated);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-    };
-    reader.readAsDataURL(file);
+    } catch (err: any) {
+      setUploadError(err?.message || 'Gagal memproses gambar kop surat');
+    } finally {
+      setIsUploadingLetterhead(false);
+      // Reset input value
+      e.target.value = '';
+    }
   };
 
   const handleRemoveLetterhead = () => {
@@ -69,25 +86,36 @@ export default function SettingsPage() {
       hasLetterheadImage: false,
     });
     setLetterSettings(updated);
+    setLetterheadImgError(false);
   };
 
-  // Upload Signature Image
-  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload Signature Image with auto compression
+  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
+    setUploadError(null);
+    setIsUploadingSignature(true);
+    setSignatureImgError(false);
+
+    try {
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Format file tanda tangan harus berupa gambar (PNG / JPG / WEBP). Disarankan PNG transparan.');
+      }
+      const compressedBase64 = await compressImageFile(file, 1000, 0.85);
       const updated = saveStoredLetterSettings({
-        signatureImageUrl: base64,
+        signatureImageUrl: compressedBase64,
         hasSignatureImage: true,
         useDigitalSignature: true,
       });
       setLetterSettings(updated);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-    };
-    reader.readAsDataURL(file);
+    } catch (err: any) {
+      setUploadError(err?.message || 'Gagal memproses tanda tangan');
+    } finally {
+      setIsUploadingSignature(false);
+      e.target.value = '';
+    }
   };
 
   const handleRemoveSignature = () => {
@@ -96,6 +124,7 @@ export default function SettingsPage() {
       hasSignatureImage: false,
     });
     setLetterSettings(updated);
+    setSignatureImgError(false);
   };
 
   const previewNumber = formatLetterNumber(
@@ -156,6 +185,19 @@ export default function SettingsPage() {
             <Badge variant="neutral">Template Siap Digunakan</Badge>
           )}
         </div>
+        {/* Error Alert if upload failed */}
+        {uploadError && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center justify-between">
+            <span>⚠️ {uploadError}</span>
+            <button
+              type="button"
+              onClick={() => setUploadError(null)}
+              className="text-red-500 hover:text-red-800 font-bold ml-2"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSaveLetterSettings} className="space-y-6 text-xs">
           {/* 1. UPLOAD SLOTS GRID */}
@@ -168,7 +210,7 @@ export default function SettingsPage() {
                     <ImageIcon className="w-4 h-4 text-emerald-600" />
                     1. Template / Kop Surat (A4)
                   </span>
-                  {letterSettings.letterheadImageUrl ? (
+                  {letterSettings.letterheadImageUrl && !letterheadImgError ? (
                     <span className="text-[10px] text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded-full">
                       ✓ File Terpasang
                     </span>
@@ -179,28 +221,39 @@ export default function SettingsPage() {
                   )}
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Upload file gambar kop surat resmi travel (format PNG / JPG). Gambar ini akan otomatis menjadi latar dokumen saat cetak.
+                  Upload file gambar kop surat resmi travel (format PNG / JPG / WEBP). Gambar ini otomatis menjadi latar dokumen saat cetak.
                 </p>
               </div>
 
               {/* Preview Box */}
               <div className="my-2 flex items-center justify-center p-3 bg-white border border-slate-300 rounded-xl min-h-[140px]">
-                {letterSettings.letterheadImageUrl ? (
+                {isUploadingLetterhead ? (
+                  <div className="text-center text-emerald-700 space-y-2">
+                    <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-[11px] font-bold">Mengompres & Memasang Kop...</p>
+                  </div>
+                ) : letterSettings.letterheadImageUrl && !letterheadImgError ? (
                   <div className="relative group text-center">
                     <img
                       src={letterSettings.letterheadImageUrl}
                       alt="Kop Surat Preview"
+                      onError={() => setLetterheadImgError(true)}
                       className="max-h-36 max-w-full rounded shadow-xs border border-slate-200 object-contain mx-auto"
                     />
                     <p className="text-[10px] text-emerald-700 font-bold mt-1.5">
                       ✓ Template Kop Aktif
                     </p>
                   </div>
+                ) : letterheadImgError ? (
+                  <div className="text-center p-2 text-amber-700 space-y-1">
+                    <p className="text-xs font-bold">⚠️ Gambar Tidak Terbaca</p>
+                    <p className="text-[10px] text-slate-500">File sebelumnya rusak atau bukan gambar valid (misal: PDF). Silakan klik 'Ganti Kop Surat' dan pilih file gambar JPG/PNG asli.</p>
+                  </div>
                 ) : (
                   <div className="text-center text-slate-400 space-y-1">
                     <ImageIcon className="w-8 h-8 mx-auto text-slate-300" />
                     <p className="text-[11px] font-medium">Belum ada file kop surat</p>
-                    <p className="text-[10px] text-slate-400">Klik tombol di bawah untuk memilih file</p>
+                    <p className="text-[10px] text-slate-400">Klik tombol di bawah untuk memilih file (JPG/PNG)</p>
                   </div>
                 )}
               </div>
@@ -238,7 +291,7 @@ export default function SettingsPage() {
                     <PenTool className="w-4 h-4 text-emerald-600" />
                     2. Tanda Tangan Digital Direktur
                   </span>
-                  {letterSettings.signatureImageUrl ? (
+                  {letterSettings.signatureImageUrl && !signatureImgError ? (
                     <span className="text-[10px] text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded-full">
                       ✓ File Terpasang
                     </span>
@@ -255,22 +308,33 @@ export default function SettingsPage() {
 
               {/* Preview Box */}
               <div className="my-2 flex items-center justify-center p-3 bg-white border border-slate-300 rounded-xl min-h-[140px]">
-                {letterSettings.signatureImageUrl ? (
+                {isUploadingSignature ? (
+                  <div className="text-center text-emerald-700 space-y-2">
+                    <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-[11px] font-bold">Memproses Tanda Tangan...</p>
+                  </div>
+                ) : letterSettings.signatureImageUrl && !signatureImgError ? (
                   <div className="text-center space-y-1">
                     <img
                       src={letterSettings.signatureImageUrl}
                       alt="Tanda Tangan Preview"
+                      onError={() => setSignatureImgError(true)}
                       className="max-h-24 max-w-[200px] object-contain mx-auto"
                     />
                     <p className="text-[10px] text-emerald-700 font-bold">
                       ✓ TTD Digital Siap Digunakan
                     </p>
                   </div>
+                ) : signatureImgError ? (
+                  <div className="text-center p-2 text-amber-700 space-y-1">
+                    <p className="text-xs font-bold">⚠️ Gambar TTD Tidak Terbaca</p>
+                    <p className="text-[10px] text-slate-500">File rusak atau format tidak cocok. Silakan upload ulang file PNG/JPG tanda tangan.</p>
+                  </div>
                 ) : (
                   <div className="text-center text-slate-400 space-y-1">
                     <PenTool className="w-8 h-8 mx-auto text-slate-300" />
                     <p className="text-[11px] font-medium">Belum ada tanda tangan digital</p>
-                    <p className="text-[10px] text-slate-400">Surat akan dicetak dengan stempel/tanda tangan manual</p>
+                    <p className="text-[10px] text-slate-400">Klik tombol di bawah untuk memilih file (PNG)</p>
                   </div>
                 )}
               </div>
