@@ -578,6 +578,7 @@ export class DbRepository {
   public static async deleteJamaah(id: string): Promise<boolean> {
     syncStoreFromDisk();
     let deleted = false;
+    const now = new Date().toISOString();
 
     if (this.isTiDBLive()) {
       try {
@@ -592,12 +593,36 @@ export class DbRepository {
 
     const idx = globalStore.jamaah.findIndex(j => j.id === id);
     if (idx !== -1) {
-      const now = new Date().toISOString();
       globalStore.jamaah[idx].deleted_at = now;
       globalStore.jamaah[idx].updated_at = now;
-      syncStoreToDisk();
       deleted = true;
     }
+
+    // Cascade to package participants, invoices, and allocations
+    globalStore.package_participants.forEach(part => {
+      if (part.jamaah_id === id) {
+        part.deleted_at = now;
+        part.participant_status = 'ARCHIVED';
+        part.updated_at = now;
+
+        const invIdx = globalStore.invoices.findIndex(inv => inv.package_participant_id === part.id);
+        if (invIdx !== -1) {
+          globalStore.invoices[invIdx].status = 'VOID';
+          globalStore.invoices[invIdx].updated_at = now;
+
+          globalStore.payment_allocations.forEach(alloc => {
+            if (alloc.invoice_id === globalStore.invoices[invIdx].id && alloc.status !== 'REVERSED') {
+              alloc.status = 'REVERSED';
+              alloc.reversed_at = now;
+              alloc.reversal_reason = 'Data Jamaah dihapus dari master';
+              alloc.updated_at = now;
+            }
+          });
+        }
+      }
+    });
+
+    syncStoreToDisk();
 
     if (this.isSupabaseLive()) {
       const supabase = createAdminClient();
@@ -1536,7 +1561,12 @@ export class DbRepository {
   }
 
   public static async getParticipants(filters?: { packageId?: string; picId?: string }): Promise<PackageParticipant[]> {
-    let list = globalStore.package_participants.filter(p => !p.deleted_at);
+    let list = globalStore.package_participants.filter(p => {
+      if (p.deleted_at) return false;
+      const j = globalStore.jamaah.find(jm => jm.id === p.jamaah_id);
+      if (j && j.deleted_at) return false;
+      return true;
+    });
 
     if (filters?.packageId) {
       list = list.filter(p => p.package_id === filters.packageId);
@@ -1578,6 +1608,9 @@ export class DbRepository {
     let createdCount = 0;
     for (const part of globalStore.package_participants) {
       if (part.deleted_at) continue;
+      const j = globalStore.jamaah.find(jm => jm.id === part.jamaah_id);
+      if (j && j.deleted_at) continue;
+
       const existing = globalStore.invoices.find(inv => inv.package_participant_id === part.id);
       if (!existing) {
         const now = new Date().toISOString();
@@ -1602,11 +1635,11 @@ export class DbRepository {
   }
 
   /**
-   * Computes derived totals and status for an invoice in real-time
+   * Computes derived financial aggregates for an invoice
    */
   private static computeInvoice(inv: Invoice): Invoice {
     const items = globalStore.invoice_items.filter(item => item.invoice_id === inv.id);
-    
+
     // Formula: Base + Charges - Discounts + Adjustments
     let totalAmount = Number(inv.base_amount) || 0;
     for (const item of items) {
@@ -1628,8 +1661,10 @@ export class DbRepository {
     const outstanding = Math.max(0, totalAmount - totalPaid);
     const overpayment = Math.max(0, totalPaid - totalAmount);
 
-    let status: InvoiceStatus = 'UNPAID';
-    if (totalPaid === 0) {
+    let status: InvoiceStatus = inv.status || 'UNPAID';
+    if (inv.status === 'VOID' || inv.status === 'CANCELLED') {
+      status = inv.status;
+    } else if (totalPaid === 0) {
       status = 'UNPAID';
     } else if (totalPaid < totalAmount) {
       status = 'PARTIAL';
@@ -1692,11 +1727,11 @@ export class DbRepository {
     const pkg = p.package_id ? globalStore.packages.find(pk => pk.id === p.package_id) : null;
     const pic = p.pic_id ? globalStore.pics.find(pc => pc.id === p.pic_id) : null;
 
-    let jamaahName = 'Belum Terhubung';
+    let jamaahName = p.sender_name || 'Tanpa Nama';
     let jamaahId: string | null = null;
     let rawJamaahId: string | null = null;
-    let packageName = pkg?.package_name || (pkg as any)?.name || (p.package_id ? 'Paket Terpilih' : 'Deposit Umum');
-    let paymentType = 'Deposit';
+    let paymentType = 'Cicilan';
+    let packageName = pkg?.package_name || (pkg as any)?.name || 'Deposit Bebas';
 
     if (allocations.length > 0) {
       const firstAlloc = allocations[0];
@@ -1754,6 +1789,14 @@ export class DbRepository {
   }): Promise<Invoice[]> {
     this.ensureInvoiceBackfill();
     let list = globalStore.invoices.map(inv => this.computeInvoice(inv));
+
+    // Exclude invoices for deleted jamaah, deleted participants, or void invoices by default
+    list = list.filter(inv => {
+      if (inv.status === 'VOID' || inv.status === 'CANCELLED') return false;
+      if (!inv.participant || inv.participant.deleted_at) return false;
+      if (!inv.participant.jamaah || inv.participant.jamaah.deleted_at) return false;
+      return true;
+    });
 
     if (filters?.packageId) {
       list = list.filter(inv => inv.participant?.package_id === filters.packageId);

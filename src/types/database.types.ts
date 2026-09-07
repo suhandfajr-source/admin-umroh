@@ -273,6 +273,7 @@ export interface Payment {
   cancelled_at?: string | null;
   cancelled_by?: string | null;
   cancellation_reason?: string | null;
+  deleted_at?: string | null;
 
   // Relations & Computed Fields
   allocations?: PaymentAllocation[];
