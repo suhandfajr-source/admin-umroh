@@ -85,32 +85,37 @@ export class ManifestGenerator {
       // 2. Standard Clean Professional Manifest Layout
       worksheet = workbook.addWorksheet(template?.worksheet_name || 'Manifest Jamaah');
 
-      // Top Title & Header Meta
-      worksheet.mergeCells('A1:L1');
-      const titleCell = worksheet.getCell('A1');
-      titleCell.value = `MANIFEST PENERBANGAN UMRAH — ${pkg.package_name.toUpperCase()}`;
-      titleCell.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
-      titleCell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF0F766E' }, // Emerald Teal
-      };
-      titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
-      worksheet.getRow(1).height = 32;
+      const colLetters = Object.keys(mapping).sort();
+      const lastCol = colLetters[colLetters.length - 1] || 'L';
+      const headerRowIndex = template?.header_row || (template ? 1 : 4);
 
-      // Meta info rows
-      worksheet.mergeCells('A2:F2');
-      worksheet.getCell('A2').value = `Jadwal: ${pkg.departure_date} s/d ${pkg.return_date} | Maskapai: ${pkg.airline || '-'}`;
-      worksheet.getCell('A2').font = { name: 'Arial', size: 10, italic: true };
+      // Top Title & Header Meta ONLY IF header_row >= 4 (to avoid collision with custom row 1 headers)
+      if (headerRowIndex >= 4) {
+        worksheet.mergeCells(`A1:${lastCol}1`);
+        const titleCell = worksheet.getCell('A1');
+        titleCell.value = `MANIFEST PENERBANGAN UMRAH — ${pkg.package_name.toUpperCase()}`;
+        titleCell.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+        titleCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF0F766E' }, // Emerald Teal
+        };
+        titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+        worksheet.getRow(1).height = 32;
 
-      worksheet.mergeCells('G2:L2');
-      worksheet.getCell('G2').value = `Total Peserta: ${activeParticipants.length} Pax | Hotel: Makkah (${pkg.makkah_hotel || '-'}), Madinah (${pkg.madinah_hotel || '-'})`;
-      worksheet.getCell('G2').font = { name: 'Arial', size: 10, italic: true };
-      worksheet.getCell('G2').alignment = { horizontal: 'right' };
-      worksheet.getRow(2).height = 20;
+        // Meta info rows
+        worksheet.mergeCells(`A2:F2`);
+        worksheet.getCell('A2').value = `Jadwal: ${pkg.departure_date} s/d ${pkg.return_date} | Maskapai: ${pkg.airline || '-'}`;
+        worksheet.getCell('A2').font = { name: 'Arial', size: 10, italic: true };
+
+        worksheet.mergeCells(`G2:${lastCol}2`);
+        worksheet.getCell('G2').value = `Total Peserta: ${activeParticipants.length} Pax | Hotel: Makkah (${pkg.makkah_hotel || '-'}), Madinah (${pkg.madinah_hotel || '-'})`;
+        worksheet.getCell('G2').font = { name: 'Arial', size: 10, italic: true };
+        worksheet.getCell('G2').alignment = { horizontal: 'right' };
+        worksheet.getRow(2).height = 20;
+      }
 
       // Column Headers
-      const headerRowIndex = template?.header_row || 4;
       const headerRow = worksheet.getRow(headerRowIndex);
       headerRow.height = 26;
 
@@ -154,7 +159,7 @@ export class ManifestGenerator {
       }
     }
 
-    const startRowIndex = template?.data_start_row || (templateBuffer ? 2 : 5);
+    const startRowIndex = template?.data_start_row || (templateBuffer ? 2 : (template?.header_row ? template.header_row + 1 : 5));
     let currentRowIndex = startRowIndex;
     let seq = 1;
 
