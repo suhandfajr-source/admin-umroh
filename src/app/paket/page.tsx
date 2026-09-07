@@ -20,6 +20,7 @@ import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatInputNumber, parseRupiahInput } from '@/lib/currency';
+import { fetchWithCache, invalidateCache } from '@/lib/cache/client-cache';
 
 export default function PackagesListPage() {
   const [packages, setPackages] = useState<Package[]>([]);
@@ -63,11 +64,14 @@ export default function PackagesListPage() {
   const [deleteTarget, setDeleteTarget] = useState<Package | null>(null);
   const [submittingDelete, setSubmittingDelete] = useState(false);
 
-  const fetchPackages = async () => {
-    setLoading(true);
+  const fetchPackages = async (forceRefresh = false) => {
     try {
-      const res = await fetch('/api/packages');
-      const data = await res.json();
+      const data = await fetchWithCache<Package[]>('/api/packages', {
+        forceRefresh,
+        onBackgroundUpdate: (fresh) => {
+          if (fresh) setPackages(fresh);
+        },
+      });
       setPackages(data || []);
     } catch (err) {
       console.error(err);
@@ -96,8 +100,9 @@ export default function PackagesListPage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Gagal membuat paket');
+      invalidateCache('/api/packages');
       setCreateModalOpen(false);
-      fetchPackages();
+      fetchPackages(true);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -145,8 +150,9 @@ export default function PackagesListPage() {
         throw new Error(errJson.error || 'Gagal memperbarui paket');
       }
 
+      invalidateCache('/api/packages');
       setEditPkg(null);
-      fetchPackages();
+      fetchPackages(true);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -168,8 +174,9 @@ export default function PackagesListPage() {
         throw new Error(errJson.error || 'Gagal menghapus paket');
       }
 
+      invalidateCache('/api/packages');
       setDeleteTarget(null);
-      fetchPackages();
+      fetchPackages(true);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -316,12 +323,14 @@ export default function PackagesListPage() {
                 <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
                   <Link
                     href={`/paket/${pkg.id}`}
+                    prefetch={true}
                     className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold transition-all"
                   >
                     Kelola Peserta
                   </Link>
                   <Link
                     href={`/paket/${pkg.id}/command-center`}
+                    prefetch={true}
                     className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 shadow-2xs transition-all"
                   >
                     <ShieldCheck className="w-3.5 h-3.5" />

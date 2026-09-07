@@ -4,7 +4,15 @@ let pool: mysql.Pool | null = null;
 
 const FALLBACK_DATABASE_URL = "mysql://4Yw4GkRotBX9KTA.root:SalWY1s1Nymm5Joj@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/test?ssl={\"rejectUnauthorized\":true}";
 
+let lastFailureTime = 0;
+const CIRCUIT_BREAKER_COOLDOWN_MS = 30000; // 30s cooldown before retrying TiDB if unreachable
+
 export function getTiDBPool(): mysql.Pool | null {
+  // If circuit breaker is active (recent network timeout), skip remote connection to keep app fast
+  if (Date.now() - lastFailureTime < CIRCUIT_BREAKER_COOLDOWN_MS) {
+    return null;
+  }
+
   const databaseUrl = process.env.DATABASE_URL || process.env.TIDB_DATABASE_URL || FALLBACK_DATABASE_URL;
   if (!databaseUrl) {
     return null;
@@ -19,13 +27,15 @@ export function getTiDBPool(): mysql.Pool | null {
           rejectUnauthorized: true,
         },
         waitForConnections: true,
-        connectionLimit: 10,
+        connectionLimit: 5,
         queueLimit: 0,
         enableKeepAlive: true,
         keepAliveInitialDelay: 10000,
+        connectTimeout: 2000, // 2s maximum connection timeout
       });
     } catch (err) {
       console.error('[TiDB] Failed to initialize connection pool:', err);
+      lastFailureTime = Date.now();
       return null;
     }
   }
@@ -36,11 +46,19 @@ export function getTiDBPool(): mysql.Pool | null {
 export async function queryTiDB<T = any>(sql: string, params: any[] = []): Promise<T[]> {
   const db = getTiDBPool();
   if (!db) {
-    throw new Error('TiDB connection pool is not configured. Please set DATABASE_URL.');
+    throw new Error('TiDB connection pool is currently unavailable or in fallback mode.');
   }
 
-  const [rows] = await db.execute(sql, params);
-  return rows as T[];
+  try {
+    const [rows] = await db.execute(sql, params);
+    return rows as T[];
+  } catch (err: any) {
+    if (err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+      lastFailureTime = Date.now();
+      console.warn('[TiDB] Network timeout detected. Activating 30s circuit breaker fallback.');
+    }
+    throw err;
+  }
 }
 
 export async function testTiDBConnection(): Promise<{ ok: boolean; message: string; timestamp?: string }> {

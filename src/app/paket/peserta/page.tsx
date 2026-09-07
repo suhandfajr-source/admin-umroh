@@ -9,6 +9,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
 import { formatInputNumber, parseRupiahInput } from '@/lib/currency';
+import { fetchWithCache, invalidateCache } from '@/lib/cache/client-cache';
 
 export default function AllParticipantsPage() {
   const [participants, setParticipants] = useState<PackageParticipant[]>([]);
@@ -31,15 +32,20 @@ export default function AllParticipantsPage() {
   const [deleteTarget, setDeleteTarget] = useState<PackageParticipant | null>(null);
   const [submittingDelete, setSubmittingDelete] = useState(false);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (forceRefresh = false) => {
     try {
       const params = new URLSearchParams();
       if (selectedPic) params.set('pic_id', selectedPic);
 
       const [resParts, resPics] = await Promise.all([
-        fetch(`/api/participants?${params.toString()}`).then(r => r.json()),
-        fetch('/api/pics').then(r => r.json()),
+        fetchWithCache<PackageParticipant[]>(`/api/participants?${params.toString()}`, {
+          forceRefresh,
+          onBackgroundUpdate: (fresh) => { if (fresh) setParticipants(fresh); },
+        }),
+        fetchWithCache<PIC[]>('/api/pics', {
+          forceRefresh,
+          onBackgroundUpdate: (fresh) => { if (fresh) setPics(fresh); },
+        }),
       ]);
 
       setParticipants(resParts || []);
@@ -85,8 +91,11 @@ export default function AllParticipantsPage() {
         throw new Error(errJson.error || 'Gagal memperbarui data peserta');
       }
 
+      invalidateCache('/api/participants');
+      invalidateCache('/api/packages');
+      invalidateCache('/api/finance/invoices');
       setEditPart(null);
-      fetchData();
+      fetchData(true);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -105,11 +114,14 @@ export default function AllParticipantsPage() {
 
       if (!res.ok) {
         const errJson = await res.json();
-        throw new Error(errJson.error || 'Gagal mengeluarkan peserta dari paket');
+        throw new Error(errJson.error || 'Gagal menghapus peserta');
       }
 
+      invalidateCache('/api/participants');
+      invalidateCache('/api/packages');
+      invalidateCache('/api/finance/invoices');
       setDeleteTarget(null);
-      fetchData();
+      fetchData(true);
     } catch (err: any) {
       alert(err.message);
     } finally {

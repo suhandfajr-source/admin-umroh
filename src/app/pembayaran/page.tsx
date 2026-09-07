@@ -28,6 +28,7 @@ import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatRupiah, parseRupiahInput, formatInputNumber } from '@/lib/currency';
 import { UnifiedJamaahDetailModal } from '@/components/jamaah/UnifiedJamaahDetailModal';
+import { fetchWithCache, invalidateCache } from '@/lib/cache/client-cache';
 
 export default function PembayaranPage() {
   const [payments, setPayments] = useState<any[]>([]);
@@ -77,36 +78,35 @@ export default function PembayaranPage() {
   const [cancellationReason, setCancellationReason] = useState('');
   const [submittingCancel, setSubmittingCancel] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (forceRefresh = false) => {
     try {
-      setLoading(true);
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (selectedPackageId) params.set('package_id', selectedPackageId);
 
-      const [payRes, pkgRes, jamRes, picRes] = await Promise.all([
-        fetch(`/api/finance/payments?${params.toString()}`),
-        fetch('/api/packages'),
-        fetch('/api/jamaah'),
-        fetch('/api/pics'),
+      const [payJson, pkgJson, jamJson, picJson] = await Promise.all([
+        fetchWithCache<any[]>(`/api/finance/payments?${params.toString()}`, {
+          forceRefresh,
+          onBackgroundUpdate: (fresh) => { if (fresh) setPayments(fresh); },
+        }),
+        fetchWithCache<any[]>('/api/packages', {
+          forceRefresh,
+          onBackgroundUpdate: (fresh) => { if (fresh) setPackages(fresh); },
+        }),
+        fetchWithCache<any[]>('/api/jamaah', {
+          forceRefresh,
+          onBackgroundUpdate: (fresh) => { if (fresh) setJamaahList(fresh); },
+        }),
+        fetchWithCache<any[]>('/api/pics', {
+          forceRefresh,
+          onBackgroundUpdate: (fresh) => { if (fresh) setPics(fresh); },
+        }),
       ]);
 
-      if (payRes.ok) {
-        const payJson = await payRes.json();
-        setPayments(payJson || []);
-      }
-      if (pkgRes.ok) {
-        const pkgJson = await pkgRes.json();
-        setPackages(pkgJson || []);
-      }
-      if (jamRes.ok) {
-        const jamJson = await jamRes.json();
-        setJamaahList(jamJson || []);
-      }
-      if (picRes.ok) {
-        const picJson = await picRes.json();
-        setPics(picJson || []);
-      }
+      setPayments(payJson || []);
+      setPackages(pkgJson || []);
+      setJamaahList(jamJson || []);
+      setPics(picJson || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -174,6 +174,9 @@ export default function PembayaranPage() {
         throw new Error(errJson.error || 'Gagal menyimpan pembayaran');
       }
 
+      invalidateCache('/api/finance/payments');
+      invalidateCache('/api/finance/invoices');
+      invalidateCache('/api/finance/overview');
       setShowCreateModal(false);
       setAmountStr('');
       setNotes('');
@@ -181,7 +184,7 @@ export default function PembayaranPage() {
       setSelectedJamaah('');
       setSelectedPic('');
       setProofFile(null);
-      await loadData();
+      await loadData(true);
     } catch (err: any) {
       alert(err.message || 'Gagal menyimpan pembayaran');
     } finally {
@@ -219,8 +222,11 @@ export default function PembayaranPage() {
         throw new Error(errJson.error || 'Gagal memperbarui pembayaran');
       }
 
+      invalidateCache('/api/finance/payments');
+      invalidateCache('/api/finance/invoices');
+      invalidateCache('/api/finance/overview');
       setEditPayment(null);
-      await loadData();
+      await loadData(true);
     } catch (err: any) {
       alert(err.message || 'Gagal memperbarui transaksi');
     } finally {
@@ -246,9 +252,12 @@ export default function PembayaranPage() {
         throw new Error(errJson.error || 'Gagal menghapus/membatalkan pembayaran');
       }
 
+      invalidateCache('/api/finance/payments');
+      invalidateCache('/api/finance/invoices');
+      invalidateCache('/api/finance/overview');
       setCancelTarget(null);
       setCancellationReason('');
-      await loadData();
+      await loadData(true);
     } catch (err: any) {
       alert(err.message || 'Gagal menghapus pembayaran');
     } finally {

@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatRupiah } from '@/lib/currency';
 import { FinanceOverviewMetrics, Payment } from '@/types/database.types';
+import { fetchWithCache } from '@/lib/cache/client-cache';
 
 export default function FinanceOverviewPage() {
   const [metrics, setMetrics] = useState<FinanceOverviewMetrics | null>(null);
@@ -31,20 +32,17 @@ export default function FinanceOverviewPage() {
   useEffect(() => {
     async function loadFinanceData() {
       try {
-        setLoading(true);
-        const [overviewRes, inboxRes] = await Promise.all([
-          fetch('/api/finance/overview'),
-          fetch('/api/finance/inbox')
+        const [data, inboxData] = await Promise.all([
+          fetchWithCache<FinanceOverviewMetrics>('/api/finance/overview', {
+            onBackgroundUpdate: (fresh) => { if (fresh) setMetrics(fresh); },
+          }),
+          fetchWithCache<Payment[]>('/api/finance/inbox', {
+            onBackgroundUpdate: (fresh) => { if (fresh) setInboxPayments(fresh.slice(0, 5)); },
+          }),
         ]);
 
-        if (overviewRes.ok) {
-          const data = await overviewRes.json();
-          setMetrics(data);
-        }
-        if (inboxRes.ok) {
-          const inboxData = await inboxRes.json();
-          setInboxPayments(inboxData.slice(0, 5));
-        }
+        if (data) setMetrics(data);
+        if (inboxData) setInboxPayments(inboxData.slice(0, 5));
       } catch (err) {
         console.error('Failed to load finance overview:', err);
       } finally {
@@ -54,7 +52,7 @@ export default function FinanceOverviewPage() {
     loadFinanceData();
   }, []);
 
-  if (loading) {
+  if (loading && !metrics) {
     return <LoadingSpinner label="Memuat ringkasan keuangan jamaah..." />;
   }
 
@@ -78,6 +76,7 @@ export default function FinanceOverviewPage() {
         <div className="flex items-center gap-2.5">
           <Link
             href="/finance/inbox"
+            prefetch={true}
             className="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all shadow-sm"
           >
             <Inbox className="w-4 h-4 text-amber-600" />
@@ -90,6 +89,7 @@ export default function FinanceOverviewPage() {
           </Link>
           <Link
             href="/finance/pembayaran"
+            prefetch={true}
             className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold flex items-center gap-2 transition-all shadow-md shadow-emerald-900/20 hover:shadow-lg hover:shadow-emerald-900/30"
           >
             <Plus className="w-4 h-4" />

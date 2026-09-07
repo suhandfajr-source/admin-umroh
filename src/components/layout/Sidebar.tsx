@@ -225,6 +225,7 @@ export const Sidebar: React.FC = () => {
                       <Link
                         key={item.href}
                         href={item.href}
+                        prefetch={true}
                         className={`flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition-all group ${
                           active
                             ? 'bg-emerald-600 text-white font-semibold shadow-xs shadow-emerald-900/30'

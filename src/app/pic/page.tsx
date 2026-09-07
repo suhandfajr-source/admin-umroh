@@ -6,6 +6,7 @@ import { PIC } from '@/types/database.types';
 import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { fetchWithCache, invalidateCache } from '@/lib/cache/client-cache';
 
 export default function MasterPicPage() {
   const [pics, setPics] = useState<PIC[]>([]);
@@ -32,19 +33,20 @@ export default function MasterPicPage() {
 
   const [invoices, setInvoices] = useState<any[]>([]);
 
-  const fetchPics = async () => {
-    setLoading(true);
+  const fetchPics = async (forceRefresh = false) => {
     try {
       const [resPics, resInvoices] = await Promise.all([
-        fetch('/api/pics'),
-        fetch('/api/finance/invoices')
+        fetchWithCache<PIC[]>('/api/pics', {
+          forceRefresh,
+          onBackgroundUpdate: (fresh) => { if (fresh) setPics(fresh); },
+        }),
+        fetchWithCache<any[]>('/api/finance/invoices', {
+          forceRefresh,
+          onBackgroundUpdate: (fresh) => { if (fresh) setInvoices(fresh); },
+        })
       ]);
-      const data = await resPics.json();
-      setPics(data || []);
-
-      if (resInvoices.ok) {
-        setInvoices(await resInvoices.json());
-      }
+      setPics(resPics || []);
+      setInvoices(resInvoices || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -69,11 +71,12 @@ export default function MasterPicPage() {
       });
       if (!res.ok) throw new Error('Gagal menyimpan PIC');
 
+      invalidateCache('/api/pics');
       setModalOpen(false);
       setName('');
       setPhone('');
       setNotes('');
-      fetchPics();
+      fetchPics(true);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -109,8 +112,9 @@ export default function MasterPicPage() {
         throw new Error(errJson.error || 'Gagal memperbarui data PIC');
       }
 
+      invalidateCache('/api/pics');
       setEditPic(null);
-      fetchPics();
+      fetchPics(true);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -132,8 +136,10 @@ export default function MasterPicPage() {
         throw new Error(errJson.error || 'Gagal menghapus PIC');
       }
 
+      invalidateCache('/api/pics');
+      invalidateCache('/api/participants');
       setDeleteTarget(null);
-      fetchPics();
+      fetchPics(true);
     } catch (err: any) {
       alert(err.message);
     } finally {

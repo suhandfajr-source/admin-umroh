@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Modal } from '@/components/ui/Modal';
 import { OperationalAlert, Package } from '@/types/database.types';
+import { fetchWithCache, invalidateCache } from '@/lib/cache/client-cache';
 
 export default function ActionCenterPage() {
   const [alerts, setAlerts] = useState<OperationalAlert[]>([]);
@@ -35,28 +36,27 @@ export default function ActionCenterPage() {
   const [dismissReason, setDismissReason] = useState('');
   const [dismissSubmitting, setDismissSubmitting] = useState(false);
 
-  const fetchAlerts = async () => {
+  const fetchAlerts = async (forceRefresh = false) => {
     try {
-      setLoading(true);
       const params = new URLSearchParams();
       if (statusFilter) params.append('status', statusFilter);
       if (categoryFilter !== 'ALL') params.append('category', categoryFilter);
       if (severityFilter !== 'ALL') params.append('severity', severityFilter);
       if (packageFilter !== 'ALL') params.append('packageId', packageFilter);
 
-      const [resAlerts, resPkgs] = await Promise.all([
-        fetch(`/api/intelligence/actions?${params.toString()}`),
-        fetch('/api/packages'),
+      const [alertsJson, pkgsJson] = await Promise.all([
+        fetchWithCache<{ alerts: OperationalAlert[] }>(`/api/intelligence/actions?${params.toString()}`, {
+          forceRefresh,
+          onBackgroundUpdate: (fresh) => { if (fresh?.alerts) setAlerts(fresh.alerts); },
+        }),
+        fetchWithCache<Package[]>('/api/packages', {
+          forceRefresh,
+          onBackgroundUpdate: (fresh) => { if (fresh) setPackages(fresh); },
+        }),
       ]);
 
-      if (resAlerts.ok) {
-        const json = await resAlerts.json();
-        setAlerts(json.alerts || []);
-      }
-      if (resPkgs.ok) {
-        const json = await resPkgs.json();
-        setPackages(json.packages || []);
-      }
+      if (alertsJson?.alerts) setAlerts(alertsJson.alerts);
+      if (Array.isArray(pkgsJson)) setPackages(pkgsJson);
     } catch (err) {
       console.error('Error fetching alerts:', err);
     } finally {
@@ -82,7 +82,8 @@ export default function ActionCenterPage() {
       if (res.ok) {
         setSelectedDismissAlert(null);
         setDismissReason('');
-        await fetchAlerts();
+        invalidateCache('/api/intelligence/actions');
+        await fetchAlerts(true);
       } else {
         const json = await res.json();
         alert(json.error || 'Gagal dismiss alert');

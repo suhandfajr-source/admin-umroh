@@ -23,6 +23,7 @@ import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatRupiah, parseRupiahInput, formatInputNumber } from '@/lib/currency';
 import { Invoice, InvoiceItemType, InvoiceStatus, Package } from '@/types/database.types';
+import { fetchWithCache, invalidateCache } from '@/lib/cache/client-cache';
 
 function InvoicesContent() {
   const searchParams = useSearchParams();
@@ -45,27 +46,26 @@ function InvoicesContent() {
   const [itemAmount, setItemAmount] = useState('');
   const [submittingItem, setSubmittingItem] = useState(false);
 
-  const loadInvoices = async () => {
+  const loadInvoices = async (forceRefresh = false) => {
     try {
-      setLoading(true);
       const params = new URLSearchParams();
       if (searchQuery) params.set('search', searchQuery);
       if (selectedPackage) params.set('package_id', selectedPackage);
       if (selectedStatus) params.set('status', selectedStatus);
 
-      const [invRes, pkgRes] = await Promise.all([
-        fetch(`/api/finance/invoices?${params.toString()}`),
-        fetch('/api/packages')
+      const [data, pkgData] = await Promise.all([
+        fetchWithCache<Invoice[]>(`/api/finance/invoices?${params.toString()}`, {
+          forceRefresh,
+          onBackgroundUpdate: (fresh) => { if (fresh) setInvoices(fresh); },
+        }),
+        fetchWithCache<Package[]>('/api/packages', {
+          forceRefresh,
+          onBackgroundUpdate: (fresh) => { if (fresh) setPackages(fresh); },
+        }),
       ]);
 
-      if (invRes.ok) {
-        const data = await invRes.json();
-        setInvoices(data);
-      }
-      if (pkgRes.ok) {
-        const pkgData = await pkgRes.json();
-        setPackages(pkgData);
-      }
+      setInvoices(data || []);
+      setPackages(pkgData || []);
     } catch (err) {
       console.error('Error fetching invoices:', err);
     } finally {
@@ -114,15 +114,16 @@ function InvoicesContent() {
       });
 
       if (res.ok) {
-        const updated = await res.json();
-        setSelectedInvoice(updated);
+        const updatedInvoice = await res.json();
+        setSelectedInvoice(updatedInvoice);
         setShowItemModal(false);
         setItemDesc('');
         setItemAmount('');
-        loadInvoices();
+        invalidateCache('/api/finance/invoices');
+        loadInvoices(true);
       } else {
-        const errData = await res.json();
-        alert(errData.error || 'Gagal menambahkan item rincian');
+        const err = await res.json();
+        alert(err.error || 'Gagal menambahkan rincian biaya.');
       }
     } catch (err: any) {
       alert(err.message || 'Terjadi kesalahan sistem');
