@@ -2052,7 +2052,6 @@ export class DbRepository {
     };
   }
 
-  // --- PAYMENTS API METHODS ---
   public static async getPayments(filters?: {
     packageId?: string;
     picId?: string;
@@ -2060,7 +2059,13 @@ export class DbRepository {
     status?: PaymentStatus;
     search?: string;
   }): Promise<Payment[]> {
-    let list = globalStore.payments.map(p => this.computePayment(p));
+    let rawList = globalStore.payments;
+    if (filters?.status) {
+      rawList = rawList.filter(p => p.status === filters.status);
+    } else {
+      rawList = rawList.filter(p => p.status !== 'CANCELLED' && !(p as any).deleted_at);
+    }
+    let list = rawList.map(p => this.computePayment(p));
 
     if (filters?.packageId) {
       list = list.filter(p => p.package_id === filters.packageId);
@@ -2275,10 +2280,24 @@ export class DbRepository {
       status: 'CANCELLED',
       allocation_status: 'CANCELLED',
       cancelled_at: now,
+      deleted_at: now,
       cancelled_by: cancelledBy || null,
       cancellation_reason: cancellationReason || 'Dibatalkan oleh admin',
       updated_at: now,
     };
+
+    // Automatically reverse all active allocations for this payment
+    globalStore.payment_allocations.forEach(alloc => {
+      if (alloc.payment_id === paymentId && alloc.status !== 'REVERSED') {
+        alloc.status = 'REVERSED';
+        alloc.reversed_at = now;
+        alloc.reversed_by = cancelledBy || null;
+        alloc.reversal_reason = `Payment dibatalkan: ${cancellationReason || 'Dibatalkan oleh admin'}`;
+        alloc.updated_at = now;
+      }
+    });
+
+    syncStoreToDisk();
 
     await AuditService.logMutation({
       action: 'PAYMENT_CANCELLED',
@@ -2288,7 +2307,7 @@ export class DbRepository {
       metadata: { amount: globalStore.payments[pIdx].amount, reason: cancellationReason },
     });
 
-    return (await this.getPaymentById(paymentId))!;
+    return (await this.getPaymentById(paymentId)) || globalStore.payments[pIdx];
   }
 
   public static async updatePayment(
