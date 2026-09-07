@@ -493,21 +493,40 @@ export default function SettingsPage() {
             </div>
 
             {/* Tag Cheatsheet */}
-            <div className="p-3 bg-white/90 rounded-xl border border-blue-100 text-[11px] text-slate-600 space-y-1.5">
-              <span className="font-bold text-slate-700 block">Daftar Tag Variabel yang Otomatis Terisi di Word:</span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 font-mono text-[10px]">
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{nomor_surat}'}</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{tanggal_surat}'}</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{nama_jamaah}'}</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{nik}'}</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{tempat_lahir}'}</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{tanggal_lahir}'}</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{jenis_kelamin}'}</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{alamat}'}</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{keperluan}'}</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{kantor_imigrasi}'}</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{tanggal_keberangkatan}'}</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{'{nama_pimpinan}'}</span>
+            <div className="p-3.5 bg-white/95 rounded-xl border border-blue-100 text-[11px] text-slate-600 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-800">Daftar Tag Variabel Microsoft Word (.docx):</span>
+                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-medium border border-emerald-200">
+                  ✓ Bebas gunakan tag sesuai kebutuhan template Anda
+                </span>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block mb-1">Tag Utama Rekomendasi:</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 font-mono text-[10px]">
+                  <span className="bg-blue-50 border border-blue-200 px-2 py-1 rounded text-blue-900 font-semibold">{'{perihal}'}</span>
+                  <span className="bg-blue-50 border border-blue-200 px-2 py-1 rounded text-blue-900 font-semibold">{'{kantor_imigrasi}'}</span>
+                  <span className="bg-blue-50 border border-blue-200 px-2 py-1 rounded text-blue-900 font-semibold">{'{nama_jamaah}'}</span>
+                  <span className="bg-blue-50 border border-blue-200 px-2 py-1 rounded text-blue-900 font-semibold">{'{tempat_tanggal_lahir}'}</span>
+                  <span className="bg-blue-50 border border-blue-200 px-2 py-1 rounded text-blue-900 font-semibold">{'{alamat}'}</span>
+                  <span className="bg-blue-50 border border-blue-200 px-2 py-1 rounded text-blue-900 font-semibold">{'{tanggal_keberangkatan}'}</span>
+                  <span className="bg-blue-50 border border-blue-200 px-2 py-1 rounded text-blue-900 font-semibold">{'{tanggal_surat}'}</span>
+                  <span className="bg-blue-50 border border-blue-200 px-2 py-1 rounded text-blue-900 font-semibold">{'{nomor_surat}'}</span>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Tag Tambahan (Opsional):</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 font-mono text-[10px]">
+                  <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">{'{nik}'}</span>
+                  <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">{'{tempat_lahir}'}</span>
+                  <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">{'{tanggal_lahir}'}</span>
+                  <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">{'{jenis_kelamin}'}</span>
+                  <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">{'{nama_pimpinan}'}</span>
+                  <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">{'{jabatan_pimpinan}'}</span>
+                  <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">{'{nama_travel}'}</span>
+                  <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">{'{kota_surat}'}</span>
+                </div>
               </div>
             </div>
           </div>

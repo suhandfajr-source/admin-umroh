@@ -305,10 +305,14 @@ export async function generatePassportDocxBlob(
     no_kk: data.kkNumber || '-',
     tempat_lahir: data.birthPlace || '-',
     tanggal_lahir: formatIndonesianDate(data.birthDate),
+    tempat_tanggal_lahir: (data.birthPlace && data.birthDate)
+      ? `${data.birthPlace}, ${formatIndonesianDate(data.birthDate)}`
+      : (data.birthPlace || formatIndonesianDate(data.birthDate) || '-'),
     jenis_kelamin: getGenderText(data.gender),
     alamat: data.address || '-',
     telepon_jamaah: data.phone || '-',
     keperluan: getPurposeText(data.purpose),
+    perihal: getPurposeText(data.purpose),
     tanggal_keberangkatan: formatIndonesianDate(data.departureDate),
     nama_paket: data.packageName || 'Paket Umrah Reguler',
 
