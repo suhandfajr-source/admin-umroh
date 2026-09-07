@@ -255,210 +255,28 @@ export default function SettingsPage() {
         )}
 
         <form onSubmit={handleSaveLetterSettings} className="space-y-6 text-xs">
-          {/* 1. UPLOAD SLOTS GRID */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Slot A: Upload Kop Surat / Template A4 */}
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                    <ImageIcon className="w-4 h-4 text-emerald-600" />
-                    1. Template / Kop Surat (A4)
-                  </span>
-                  {isMounted && letterSettings.letterheadImageUrl && !letterheadImgError ? (
-                    <span className="text-[10px] text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded-full">
-                      ✓ File Terpasang
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-slate-400 bg-slate-200 px-2 py-0.5 rounded-full">
-                      Belum Upload
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Upload file gambar kop surat resmi travel (format PNG / JPG / WEBP). Gambar ini otomatis menjadi latar dokumen saat cetak.
-                </p>
-              </div>
-
-              {/* Preview Box */}
-              <div className="my-2 flex items-center justify-center p-3 bg-white border border-slate-300 rounded-xl min-h-[140px]">
-                {isUploadingLetterhead ? (
-                  <div className="text-center text-emerald-700 space-y-2">
-                    <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="text-[11px] font-bold">Mengompres & Memasang Kop...</p>
-                  </div>
-                ) : isMounted && letterSettings.letterheadImageUrl && !letterheadImgError ? (
-                  <div className="relative group text-center">
-                    <img
-                      src={letterSettings.letterheadImageUrl}
-                      alt="Kop Surat Preview"
-                      onError={() => setLetterheadImgError(true)}
-                      className="max-h-36 max-w-full rounded shadow-xs border border-slate-200 object-contain mx-auto"
-                    />
-                    <p className="text-[10px] text-emerald-700 font-bold mt-1.5">
-                      ✓ Template Kop Aktif
-                    </p>
-                  </div>
-                ) : isMounted && letterheadImgError ? (
-                  <div className="text-center p-2 text-amber-700 space-y-1">
-                    <p className="text-xs font-bold">⚠️ Gambar Tidak Terbaca</p>
-                    <p className="text-[10px] text-slate-500">File sebelumnya rusak atau bukan gambar valid (misal: PDF). Silakan klik 'Ganti Kop Surat' dan pilih file gambar JPG/PNG asli.</p>
-                  </div>
-                ) : (
-                  <div className="text-center text-slate-400 space-y-1">
-                    <ImageIcon className="w-8 h-8 mx-auto text-slate-300" />
-                    <p className="text-[11px] font-medium">Belum ada file kop surat</p>
-                    <p className="text-[10px] text-slate-400">Klik tombol di bawah untuk memilih file (JPG/PNG)</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                <label className="flex-1 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold text-center cursor-pointer shadow-xs transition-all flex items-center justify-center gap-1.5">
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>{isMounted && letterSettings.letterheadImageUrl ? 'Ganti Kop Surat' : 'Upload Kop Surat'}</span>
-                  <input
-                    type="file"
-                    accept="image/png, image/jpeg, image/webp"
-                    onChange={handleLetterheadUpload}
-                    className="hidden"
-                  />
-                </label>
-                {isMounted && letterSettings.letterheadImageUrl && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveLetterhead}
-                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 rounded-xl transition-all"
-                    title="Hapus Kop Surat"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Slot B: Upload Tanda Tangan Direktur */}
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                    <PenTool className="w-4 h-4 text-emerald-600" />
-                    2. Tanda Tangan Digital Direktur
-                  </span>
-                  {isMounted && letterSettings.signatureImageUrl && !signatureImgError ? (
-                    <span className="text-[10px] text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded-full">
-                      ✓ File Terpasang
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-slate-400 bg-slate-200 px-2 py-0.5 rounded-full">
-                      Belum Upload
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Upload file tanda tangan pimpinan / stempel (disarankan format **PNG Transparan**).
-                </p>
-              </div>
-
-              {/* Preview Box */}
-              <div className="my-2 flex items-center justify-center p-3 bg-white border border-slate-300 rounded-xl min-h-[140px]">
-                {isUploadingSignature ? (
-                  <div className="text-center text-emerald-700 space-y-2">
-                    <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="text-[11px] font-bold">Memproses Tanda Tangan...</p>
-                  </div>
-                ) : isMounted && letterSettings.signatureImageUrl && !signatureImgError ? (
-                  <div className="text-center space-y-1">
-                    <img
-                      src={letterSettings.signatureImageUrl}
-                      alt="Tanda Tangan Preview"
-                      onError={() => setSignatureImgError(true)}
-                      className="max-h-24 max-w-[200px] object-contain mx-auto"
-                    />
-                    <p className="text-[10px] text-emerald-700 font-bold">
-                      ✓ TTD Digital Siap Digunakan
-                    </p>
-                  </div>
-                ) : isMounted && signatureImgError ? (
-                  <div className="text-center p-2 text-amber-700 space-y-1">
-                    <p className="text-xs font-bold">⚠️ Gambar TTD Tidak Terbaca</p>
-                    <p className="text-[10px] text-slate-500">File rusak atau format tidak cocok. Silakan upload ulang file PNG/JPG tanda tangan.</p>
-                  </div>
-                ) : (
-                  <div className="text-center text-slate-400 space-y-1">
-                    <PenTool className="w-8 h-8 mx-auto text-slate-300" />
-                    <p className="text-[11px] font-medium">Belum ada tanda tangan digital</p>
-                    <p className="text-[10px] text-slate-400">Klik tombol di bawah untuk memilih file (PNG)</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons & Toggle */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <label className="flex-1 px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold text-center cursor-pointer shadow-2xs transition-all flex items-center justify-center gap-1.5">
-                    <Upload className="w-3.5 h-3.5 text-slate-500" />
-                    <span>{isMounted && letterSettings.signatureImageUrl ? 'Ganti Tanda Tangan' : 'Upload Tanda Tangan'}</span>
-                    <input
-                      type="file"
-                      accept="image/png, image/jpeg, image/webp"
-                      onChange={handleSignatureUpload}
-                      className="hidden"
-                    />
-                  </label>
-                  {isMounted && letterSettings.signatureImageUrl && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveSignature}
-                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 rounded-xl transition-all"
-                      title="Hapus Tanda Tangan"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-
-                {isMounted && letterSettings.signatureImageUrl && (
-                  <div className="flex items-center justify-between px-1 pt-1">
-                    <span className="text-[11px] text-slate-600">Sertakan TTD Digital saat cetak:</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={letterSettings.useDigitalSignature}
-                        onChange={(e) => setLetterSettings({ ...letterSettings, useDigitalSignature: e.target.checked })}
-                        className="sr-only peer"
-                      />
-                      <div className="w-8 h-4.5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-emerald-600"></div>
-                    </label>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Slot C: Master Template Microsoft Word (.docx) */}
-          <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-200/80 space-y-3.5">
+          {/* 1. MASTER TEMPLATE MICROSOFT WORD (.DOCX) */}
+          <div className="p-4 sm:p-5 bg-blue-50/60 rounded-2xl border border-blue-200/80 space-y-3.5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-blue-200/60">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-blue-700" />
-                <span className="font-bold text-slate-800 text-xs">
-                  3. Master Template Microsoft Word (.docx)
+                <span className="font-bold text-slate-800 text-xs sm:text-sm">
+                  Master Template Microsoft Word (.docx)
                 </span>
               </div>
               {isMounted && letterSettings.hasCustomDocxTemplate ? (
-                <span className="text-[10px] text-blue-700 bg-blue-100 font-bold px-2 py-0.5 rounded-full self-start sm:self-auto">
+                <span className="text-[10px] text-blue-700 bg-blue-100 font-bold px-2.5 py-1 rounded-full self-start sm:self-auto flex items-center gap-1">
                   ✓ Template Kustom: {letterSettings.customDocxTemplateName || 'template.docx'}
                 </span>
               ) : (
-                <span className="text-[10px] text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-full self-start sm:self-auto">
+                <span className="text-[10px] text-slate-500 bg-slate-200/80 px-2.5 py-1 rounded-full self-start sm:self-auto">
                   Template Standar Sistem
                 </span>
               )}
             </div>
 
             <p className="text-[11px] text-slate-600 leading-relaxed">
-              Anda dapat mengunggah file template Microsoft Word (<strong>.docx</strong>) resmi travel Anda lengkap dengan kop surat dan format tabel. Sistem akan otomatis mengisi variabel nama jamaah, NIK, nomor surat, dan tanggal saat diunduh.
+              Anda dapat mengunggah file template Microsoft Word (<strong>.docx</strong>) resmi travel Anda lengkap dengan kop surat dan format tabel. Sistem akan otomatis mengisi variabel nama jamaah, tempat tanggal lahir, alamat, perihal, dan tanggal keberangkatan saat diunduh.
             </p>
 
             {/* Actions */}
@@ -535,9 +353,9 @@ export default function SettingsPage() {
           </div>
 
           {/* 2. NOMOR SURAT PATTERN & DATA PENANDATANGAN */}
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+          <div className="p-4 sm:p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200">
-              <span className="font-bold text-slate-800">Pola Nomor Surat & Informasi Penandatangan</span>
+              <span className="font-bold text-slate-800 text-xs sm:text-sm">Pola Nomor Surat Rekomendasi</span>
               <span className="text-[11px] text-slate-500">
                 Preview Nomor: <strong className="font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">{previewNumber}</strong>
               </span>
@@ -567,39 +385,6 @@ export default function SettingsPage() {
                   value={letterSettings.lastNumberSequence}
                   onChange={(e) => setLetterSettings({ ...letterSettings, lastNumberSequence: Number(e.target.value) })}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-mono font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">Kota Terbit Surat</label>
-                <input
-                  type="text"
-                  value={letterSettings.city}
-                  onChange={(e) => setLetterSettings({ ...letterSettings, city: e.target.value })}
-                  placeholder="Bogor"
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">Nama Pimpinan / Penandatangan</label>
-                <input
-                  type="text"
-                  value={letterSettings.signatoryName}
-                  onChange={(e) => setLetterSettings({ ...letterSettings, signatoryName: e.target.value })}
-                  placeholder="Nama Direktur"
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">Jabatan Pimpinan</label>
-                <input
-                  type="text"
-                  value={letterSettings.signatoryRole}
-                  onChange={(e) => setLetterSettings({ ...letterSettings, signatoryRole: e.target.value })}
-                  placeholder="Direktur Utama"
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
                 />
               </div>
             </div>

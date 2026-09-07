@@ -548,81 +548,29 @@ export const PassportRecommendationModal: React.FC<PassportRecommendationModalPr
               </div>
 
               {/* Status Template DOCX Kustom */}
-              {settings.hasCustomDocxTemplate && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5 text-blue-700" />
-                      Template Word (.docx) Kustom Aktif
+              <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-blue-700" />
+                    Template Word (.docx)
+                  </span>
+                  {settings.hasCustomDocxTemplate ? (
+                    <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full border border-blue-200">
+                      ✓ Template Kustom
                     </span>
-                    <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
-                      Terpasang
+                  ) : (
+                    <span className="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">
+                      Standar Sistem
                     </span>
-                  </div>
-                  <p className="text-[11px] text-blue-700 leading-relaxed">
-                    File <strong>{settings.customDocxTemplateName || 'Template Surat Rekom.docx'}</strong> otomatis digunakan saat Anda mengklik tombol <strong>Download Word (.docx)</strong>.
-                  </p>
+                  )}
                 </div>
-              )}
-
-              {/* Opsi Kop & TTD yang Terupload */}
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                  <span className="text-xs font-bold text-slate-800">Opsi Template PDF & Tanda Tangan</span>
-                  <a
-                    href="/pengaturan"
-                    target="_blank"
-                    className="text-[11px] text-emerald-600 hover:text-emerald-800 font-bold flex items-center gap-1"
-                  >
-                    <span>Menu Setting Upload</span>
-                  </a>
-                </div>
-
-                {/* Toggle Kop Gambar */}
-                {settings.letterheadImageUrl ? (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-slate-800 block">Kop Surat Gambar Upload</span>
-                      <span className="text-[10px] text-slate-500">Gunakan file template kop yang tersimpan</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={useUploadedLetterhead}
-                        onChange={(e) => setUseUploadedLetterhead(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
-                    </label>
-                  </div>
-                ) : (
-                  <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-800">
-                    Belum ada file Kop Surat yang di-upload di menu <a href="/pengaturan" className="underline font-bold">Pengaturan</a>.
-                  </div>
-                )}
-
-                {/* Toggle TTD Gambar */}
-                {settings.signatureImageUrl ? (
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-                    <div>
-                      <span className="text-xs font-bold text-slate-800 block">Tanda Tangan Digital</span>
-                      <span className="text-[10px] text-slate-500">Sertakan gambar TTD Direktur Utama</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={useDigitalSignature}
-                        onChange={(e) => setUseDigitalSignature(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
-                    </label>
-                  </div>
-                ) : (
-                  <div className="p-2 bg-slate-100 rounded-lg text-[11px] text-slate-500">
-                    TTD Digital belum di-upload di menu <a href="/pengaturan" className="underline font-bold text-emerald-700">Pengaturan</a> (surat akan dicetak dengan area tanda tangan kosong).
-                  </div>
-                )}
+                <p className="text-[11px] text-blue-800 leading-relaxed">
+                  {settings.hasCustomDocxTemplate ? (
+                    <>File template <strong>{settings.customDocxTemplateName || 'Template Surat Rekom.docx'}</strong> aktif digunakan untuk pembuatan surat rekomendasi paspor.</>
+                  ) : (
+                    <>Menggunakan template standar. Anda dapat mengunggah template Word (.docx) resmi travel Anda di menu <a href="/pengaturan" target="_blank" className="underline font-bold text-blue-900">Pengaturan</a>.</>
+                  )}
+                </p>
               </div>
             </div>
           </div>
