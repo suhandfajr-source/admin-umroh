@@ -526,18 +526,44 @@ export class DbRepository {
   }
 
   public static async updateJamaah(id: string, data: Partial<Jamaah>): Promise<Jamaah | null> {
+    syncStoreFromDisk();
+    let updated: Jamaah | null = null;
+
+    if (this.isTiDBLive()) {
+      try {
+        const setClauses: string[] = [];
+        const params: any[] = [];
+        for (const [key, val] of Object.entries(data)) {
+          if (key === 'id') continue;
+          let cleanVal = val;
+          if ((key === 'birth_date' || key === 'passport_issue_date' || key === 'passport_expiry_date') && val) {
+            cleanVal = new Date(val as string).toISOString().split('T')[0];
+          }
+          setClauses.push(`${key} = ?`);
+          params.push(cleanVal ?? null);
+        }
+        if (setClauses.length > 0) {
+          params.push(id);
+          await queryTiDB(`UPDATE jamaah SET ${setClauses.join(', ')}, updated_at = NOW() WHERE id = ?`, params);
+        }
+      } catch (tidbErr) {
+        console.warn('[TIDB_UPDATE_JAMAAH_ERROR]', tidbErr);
+      }
+    }
+
     const idx = globalStore.jamaah.findIndex(j => j.id === id);
-    if (idx === -1) return null;
-
-    const existing = globalStore.jamaah[idx];
-    const updated: Jamaah = {
-      ...existing,
-      ...data,
-      updated_at: new Date().toISOString(),
-    };
-
-    globalStore.jamaah[idx] = updated;
-    syncStoreToDisk();
+    if (idx !== -1) {
+      const existing = globalStore.jamaah[idx];
+      updated = {
+        ...existing,
+        ...data,
+        updated_at: new Date().toISOString(),
+      };
+      globalStore.jamaah[idx] = updated;
+      syncStoreToDisk();
+    } else if (this.isTiDBLive()) {
+      updated = await this.getJamaahById(id);
+    }
 
     if (this.isSupabaseLive()) {
       const supabase = createAdminClient();
@@ -548,20 +574,36 @@ export class DbRepository {
   }
 
   public static async deleteJamaah(id: string): Promise<boolean> {
-    const idx = globalStore.jamaah.findIndex(j => j.id === id);
-    if (idx === -1) return false;
+    syncStoreFromDisk();
+    let deleted = false;
 
-    const now = new Date().toISOString();
-    globalStore.jamaah[idx].deleted_at = now;
-    globalStore.jamaah[idx].updated_at = now;
-    syncStoreToDisk();
+    if (this.isTiDBLive()) {
+      try {
+        const result: any = await queryTiDB('UPDATE jamaah SET deleted_at = NOW(), updated_at = NOW() WHERE id = ?', [id]);
+        if (result && (result.affectedRows > 0 || (result.length !== undefined && result.length > 0))) {
+          deleted = true;
+        }
+      } catch (tidbErr) {
+        console.warn('[TIDB_DELETE_JAMAAH_ERROR]', tidbErr);
+      }
+    }
+
+    const idx = globalStore.jamaah.findIndex(j => j.id === id);
+    if (idx !== -1) {
+      const now = new Date().toISOString();
+      globalStore.jamaah[idx].deleted_at = now;
+      globalStore.jamaah[idx].updated_at = now;
+      syncStoreToDisk();
+      deleted = true;
+    }
 
     if (this.isSupabaseLive()) {
       const supabase = createAdminClient();
-      await supabase.from('jamaah').update({ deleted_at: now }).eq('id', id);
+      await supabase.from('jamaah').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+      deleted = true;
     }
 
-    return true;
+    return deleted;
   }
 
   // ==========================================
