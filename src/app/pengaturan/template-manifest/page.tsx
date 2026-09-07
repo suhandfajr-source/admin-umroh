@@ -13,7 +13,10 @@ import {
   Edit, 
   CheckCircle2,
   Sliders,
-  Layers
+  Layers,
+  ChevronUp,
+  ChevronDown,
+  ArrowUpDown
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -148,13 +151,54 @@ export default function ManifestTemplateSettingsPage() {
     setModalOpen(true);
   };
 
+  const getExcelColumnLetter = (index: number): string => {
+    let col = '';
+    let temp = index;
+    while (temp >= 0) {
+      col = String.fromCharCode((temp % 26) + 65) + col;
+      temp = Math.floor(temp / 26) - 1;
+    }
+    return col;
+  };
+
   const handleAddColumn = () => {
-    const nextCol = String.fromCharCode(65 + fieldMappings.length);
+    const nextCol = getExcelColumnLetter(fieldMappings.length);
     setFieldMappings([...fieldMappings, { col: nextCol, field: 'passport_name' }]);
   };
 
   const handleRemoveColumn = (idx: number) => {
-    setFieldMappings(fieldMappings.filter((_, i) => i !== idx));
+    const filtered = fieldMappings.filter((_, i) => i !== idx);
+    const reindexed = filtered.map((item, i) => ({
+      ...item,
+      col: getExcelColumnLetter(i),
+    }));
+    setFieldMappings(reindexed);
+  };
+
+  const handleMoveUp = (idx: number) => {
+    if (idx <= 0) return;
+    const updated = [...fieldMappings];
+    const temp = updated[idx];
+    updated[idx] = updated[idx - 1];
+    updated[idx - 1] = temp;
+    const reindexed = updated.map((item, i) => ({
+      ...item,
+      col: getExcelColumnLetter(i),
+    }));
+    setFieldMappings(reindexed);
+  };
+
+  const handleMoveDown = (idx: number) => {
+    if (idx >= fieldMappings.length - 1) return;
+    const updated = [...fieldMappings];
+    const temp = updated[idx];
+    updated[idx] = updated[idx + 1];
+    updated[idx + 1] = temp;
+    const reindexed = updated.map((item, i) => ({
+      ...item,
+      col: getExcelColumnLetter(i),
+    }));
+    setFieldMappings(reindexed);
   };
 
   const handleMappingChange = (idx: number, field: ManifestSystemField) => {
@@ -422,16 +466,39 @@ export default function ManifestTemplateSettingsPage() {
               </button>
             </div>
 
-            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+            <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
               {fieldMappings.map((mapping, idx) => (
-                <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                  <span className="w-10 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-center">
+                <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl transition-colors">
+                  {/* Reorder Buttons */}
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      type="button"
+                      disabled={idx === 0}
+                      onClick={() => handleMoveUp(idx)}
+                      title="Geser Kolom ke Atas"
+                      className="p-1 text-slate-500 hover:text-emerald-700 hover:bg-white rounded transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-500"
+                    >
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={idx === fieldMappings.length - 1}
+                      onClick={() => handleMoveDown(idx)}
+                      title="Geser Kolom ke Bawah"
+                      className="p-1 text-slate-500 hover:text-emerald-700 hover:bg-white rounded transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-500"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <span className="w-9 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-800 text-center shadow-2xs">
                     {mapping.col}
                   </span>
+
                   <select
                     value={mapping.field}
                     onChange={(e) => handleMappingChange(idx, e.target.value as ManifestSystemField)}
-                    className="flex-1 px-3 py-1 bg-white border border-slate-300 rounded-lg text-xs"
+                    className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   >
                     {AVAILABLE_SYSTEM_FIELDS.map(f => (
                       <option key={f.key} value={f.key}>
@@ -439,11 +506,13 @@ export default function ManifestTemplateSettingsPage() {
                       </option>
                     ))}
                   </select>
+
                   {fieldMappings.length > 1 && (
                     <button
                       type="button"
                       onClick={() => handleRemoveColumn(idx)}
-                      className="p-1 text-slate-400 hover:text-rose-600 rounded-lg"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      title="Hapus Kolom"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
