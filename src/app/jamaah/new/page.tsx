@@ -24,6 +24,8 @@ export default function NewJamaahPage() {
     nik: '',
     kk_number: '',
     phone: '',
+    relationship: '',
+    marital_status: '',
     address: '',
     notes: '',
   });
@@ -329,6 +331,30 @@ export default function NewJamaahPage() {
                 onChange={handleChange}
                 placeholder="0812xxxxxxxx"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:bg-white focus:outline-hidden focus:border-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Hubungan / Mahram</label>
+              <input
+                type="text"
+                name="relationship"
+                value={formData.relationship}
+                onChange={handleChange}
+                placeholder="Contoh: Suami, Istri, Anak, Kepala Keluarga"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-hidden focus:border-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Status Pernikahan</label>
+              <input
+                type="text"
+                name="marital_status"
+                value={formData.marital_status}
+                onChange={handleChange}
+                placeholder="Contoh: Kawin, Belum Kawin, Cerai Hidup"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-hidden focus:border-emerald-500"
               />
             </div>
           </div>

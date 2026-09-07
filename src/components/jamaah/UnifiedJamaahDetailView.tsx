@@ -85,6 +85,8 @@ export const UnifiedJamaahDetailView: React.FC<UnifiedJamaahDetailViewProps> = (
         birth_place: json.birth_place || '',
         birth_date: json.birth_date || '',
         address: json.address || '',
+        relationship: json.relationship || '',
+        marital_status: json.marital_status || '',
         passport_number: json.passport_number || '',
         passport_issue_place: json.passport_issue_place || '',
         passport_issue_date: json.passport_issue_date || '',
@@ -376,6 +378,14 @@ export const UnifiedJamaahDetailView: React.FC<UnifiedJamaahDetailViewProps> = (
                   {data.birth_place || '-'}, {data.birth_date || '-'}
                 </p>
               </div>
+              <div>
+                <p className="text-slate-400 font-medium">Hubungan / Mahram</p>
+                <p className="font-bold text-slate-800 text-sm mt-0.5">{data.relationship || '-'}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 font-medium">Status Pernikahan</p>
+                <p className="font-bold text-slate-800 text-sm mt-0.5">{data.marital_status || '-'}</p>
+              </div>
               <div className="md:col-span-2">
                 <p className="text-slate-400 font-medium">Alamat Lengkap</p>
                 <p className="font-bold text-slate-800 text-sm mt-0.5">{data.address || '-'}</p>
@@ -459,6 +469,26 @@ export const UnifiedJamaahDetailView: React.FC<UnifiedJamaahDetailViewProps> = (
                     value={editForm.kk_number || ''}
                     onChange={(e) => setEditForm({ ...editForm, kk_number: e.target.value })}
                     className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700">Hubungan / Mahram</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Suami, Istri, Anak, Kepala Keluarga"
+                    value={editForm.relationship || ''}
+                    onChange={(e) => setEditForm({ ...editForm, relationship: e.target.value })}
+                    className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700">Status Pernikahan</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Kawin, Belum Kawin, Cerai Hidup, Cerai Mati"
+                    value={editForm.marital_status || ''}
+                    onChange={(e) => setEditForm({ ...editForm, marital_status: e.target.value })}
+                    className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
                 {/* Rincian Alamat KTP */}

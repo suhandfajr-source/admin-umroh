@@ -36,6 +36,8 @@ const AVAILABLE_SYSTEM_FIELDS: { key: ManifestSystemField; label: string }[] = [
   { key: 'kk_number', label: 'Nomor Kartu Keluarga (KK)' },
   { key: 'phone', label: 'Nomor Telepon / WhatsApp' },
   { key: 'address', label: 'Alamat Lengkap Jamaah' },
+  { key: 'relationship', label: 'Hubungan / Mahram (relationship)' },
+  { key: 'marital_status', label: 'Status Pernikahan (marital_status)' },
   { key: 'package_name', label: 'Nama Paket Umrah' },
   { key: 'departure_date', label: 'Tanggal Keberangkatan' },
   { key: 'return_date', label: 'Tanggal Kepulangan' },

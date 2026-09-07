@@ -214,6 +214,8 @@ export class ManifestValidator {
         kk_number: j?.kk_number || '-',
         phone: j?.phone || '-',
         address: j?.address || '-',
+        relationship: (part as any).relationship || j?.relationship || (j?.notes?.match(/Hubungan:\s*([^,\n]+)/i)?.[1]?.trim()) || '-',
+        marital_status: (part as any).marital_status || j?.marital_status || (j?.notes?.match(/Status Pernikahan:\s*([^,\n]+)/i)?.[1]?.trim()) || '-',
         package_name: pkg.package_name,
         departure_date: pkg.departure_date,
         return_date: pkg.return_date,

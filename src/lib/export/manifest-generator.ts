@@ -127,6 +127,8 @@ export class ManifestGenerator {
         nik: 'NIK / KTP',
         phone: 'NO. TELEPON / HP',
         pic_name: 'PIC / MITRA',
+        relationship: 'HUBUNGAN / MAHRAM',
+        marital_status: 'STATUS PERNIKAHAN',
         selling_price: 'HARGA JUAL',
         b2b_price: 'HARGA B2B',
         participant_status: 'STATUS PESERTA',
@@ -174,6 +176,8 @@ export class ManifestGenerator {
       const phone = j?.phone || '';
       const addr = j?.address || '';
       const picName = part.pic?.name || 'Direct';
+      const relationshipVal = (part as any).relationship || j?.relationship || (j?.notes?.match(/Hubungan:\s*([^,\n]+)/i)?.[1]?.trim()) || '';
+      const maritalStatusVal = (part as any).marital_status || j?.marital_status || (j?.notes?.match(/Status Pernikahan:\s*([^,\n]+)/i)?.[1]?.trim()) || '';
 
       // Value Transformations (e.g. Gender M/F)
       if (template?.value_transformations?.gender && genderVal) {
@@ -196,6 +200,8 @@ export class ManifestGenerator {
         kk_number: kk,
         phone: phone,
         address: addr,
+        relationship: relationshipVal,
+        marital_status: maritalStatusVal,
         package_name: pkg.package_name,
         departure_date: pkg.departure_date,
         return_date: pkg.return_date,

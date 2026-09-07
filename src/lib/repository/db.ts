@@ -451,6 +451,8 @@ export class DbRepository {
       kk_number: data.kk_number || null,
       phone: data.phone || null,
       address: data.address || null,
+      relationship: data.relationship || null,
+      marital_status: data.marital_status || null,
       notes: data.notes || null,
       created_at: now,
       updated_at: now,

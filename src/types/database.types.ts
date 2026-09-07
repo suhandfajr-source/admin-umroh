@@ -37,6 +37,8 @@ export interface Jamaah {
   kk_number: string | null;
   phone: string | null;
   address: string | null;
+  relationship?: string | null;
+  marital_status?: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -125,6 +127,8 @@ export interface PackageParticipant {
   package_id: string;
   jamaah_id: string;
   pic_id: string | null;
+  relationship?: string | null;
+  marital_status?: string | null;
   b2b_price: number; // Whole Rupiah
   selling_price: number; // Whole Rupiah
   participant_status: ParticipantStatus;
@@ -333,6 +337,8 @@ export type ManifestSystemField =
   | 'kk_number'
   | 'phone'
   | 'address'
+  | 'relationship'
+  | 'marital_status'
   | 'package_name'
   | 'departure_date'
   | 'return_date'
