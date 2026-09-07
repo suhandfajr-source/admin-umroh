@@ -67,19 +67,19 @@ export default function ManifestTemplateSettingsPage() {
   const [dataStartRow, setDataStartRow] = useState(2);
   const [isDefault, setIsDefault] = useState(false);
   const [genderFormat, setGenderFormat] = useState<'MF' | 'LP' | 'RAW'>('MF');
-  const [fieldMappings, setFieldMappings] = useState<{ col: string; field: ManifestSystemField }[]>([
-    { col: 'A', field: 'no' },
-    { col: 'B', field: 'passport_name' },
-    { col: 'C', field: 'passport_number' },
-    { col: 'D', field: 'gender' },
-    { col: 'E', field: 'birth_place' },
-    { col: 'F', field: 'birth_date' },
-    { col: 'G', field: 'passport_issue_place' },
-    { col: 'H', field: 'passport_issue_date' },
-    { col: 'I', field: 'passport_expiry_date' },
-    { col: 'J', field: 'nik' },
-    { col: 'K', field: 'phone' },
-    { col: 'L', field: 'pic_name' },
+  const [fieldMappings, setFieldMappings] = useState<{ col: string; field: ManifestSystemField; customHeader?: string }[]>([
+    { col: 'A', field: 'no', customHeader: '' },
+    { col: 'B', field: 'passport_name', customHeader: '' },
+    { col: 'C', field: 'passport_number', customHeader: '' },
+    { col: 'D', field: 'gender', customHeader: '' },
+    { col: 'E', field: 'birth_place', customHeader: '' },
+    { col: 'F', field: 'birth_date', customHeader: '' },
+    { col: 'G', field: 'passport_issue_place', customHeader: '' },
+    { col: 'H', field: 'passport_issue_date', customHeader: '' },
+    { col: 'I', field: 'passport_expiry_date', customHeader: '' },
+    { col: 'J', field: 'nik', customHeader: '' },
+    { col: 'K', field: 'phone', customHeader: '' },
+    { col: 'L', field: 'pic_name', customHeader: '' },
   ]);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
@@ -113,18 +113,18 @@ export default function ManifestTemplateSettingsPage() {
     setIsDefault(false);
     setGenderFormat('MF');
     setFieldMappings([
-      { col: 'A', field: 'no' },
-      { col: 'B', field: 'passport_name' },
-      { col: 'C', field: 'passport_number' },
-      { col: 'D', field: 'gender' },
-      { col: 'E', field: 'birth_place' },
-      { col: 'F', field: 'birth_date' },
-      { col: 'G', field: 'passport_issue_place' },
-      { col: 'H', field: 'passport_issue_date' },
-      { col: 'I', field: 'passport_expiry_date' },
-      { col: 'J', field: 'nik' },
-      { col: 'K', field: 'phone' },
-      { col: 'L', field: 'pic_name' },
+      { col: 'A', field: 'no', customHeader: '' },
+      { col: 'B', field: 'passport_name', customHeader: '' },
+      { col: 'C', field: 'passport_number', customHeader: '' },
+      { col: 'D', field: 'gender', customHeader: '' },
+      { col: 'E', field: 'birth_place', customHeader: '' },
+      { col: 'F', field: 'birth_date', customHeader: '' },
+      { col: 'G', field: 'passport_issue_place', customHeader: '' },
+      { col: 'H', field: 'passport_issue_date', customHeader: '' },
+      { col: 'I', field: 'passport_expiry_date', customHeader: '' },
+      { col: 'J', field: 'nik', customHeader: '' },
+      { col: 'K', field: 'phone', customHeader: '' },
+      { col: 'L', field: 'pic_name', customHeader: '' },
     ]);
     setModalOpen(true);
   };
@@ -140,8 +140,9 @@ export default function ManifestTemplateSettingsPage() {
     const mappings = Object.entries(tmpl.field_mapping || {}).map(([col, field]) => ({
       col,
       field,
+      customHeader: tmpl.column_headers?.[col] || '',
     }));
-    setFieldMappings(mappings.length > 0 ? mappings : [{ col: 'A', field: 'passport_name' }]);
+    setFieldMappings(mappings.length > 0 ? mappings : [{ col: 'A', field: 'passport_name', customHeader: '' }]);
 
     if (tmpl.value_transformations?.gender?.MALE === 'L') {
       setGenderFormat('LP');
@@ -166,7 +167,7 @@ export default function ManifestTemplateSettingsPage() {
 
   const handleAddColumn = () => {
     const nextCol = getExcelColumnLetter(fieldMappings.length);
-    setFieldMappings([...fieldMappings, { col: nextCol, field: 'passport_name' }]);
+    setFieldMappings([...fieldMappings, { col: nextCol, field: 'passport_name', customHeader: '' }]);
   };
 
   const handleRemoveColumn = (idx: number) => {
@@ -251,6 +252,12 @@ export default function ManifestTemplateSettingsPage() {
     setFieldMappings(updated);
   };
 
+  const handleCustomHeaderChange = (idx: number, customHeader: string) => {
+    const updated = [...fieldMappings];
+    updated[idx].customHeader = customHeader;
+    setFieldMappings(updated);
+  };
+
   const handleSaveTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!templateName.trim()) return;
@@ -258,9 +265,14 @@ export default function ManifestTemplateSettingsPage() {
     setSubmitting(true);
     try {
       const mappingObj: Record<string, ManifestSystemField> = {};
+      const columnHeadersObj: Record<string, string> = {};
       fieldMappings.forEach(m => {
         if (m.col && m.field) {
-          mappingObj[m.col.toUpperCase()] = m.field;
+          const colKey = m.col.toUpperCase();
+          mappingObj[colKey] = m.field;
+          if (m.customHeader?.trim()) {
+            columnHeadersObj[colKey] = m.customHeader.trim();
+          }
         }
       });
 
@@ -277,6 +289,7 @@ export default function ManifestTemplateSettingsPage() {
         header_row: Number(headerRow) || 1,
         data_start_row: Number(dataStartRow) || 2,
         field_mapping: mappingObj,
+        column_headers: columnHeadersObj,
         value_transformations: valueTransformations,
         is_default: isDefault,
       };
@@ -431,8 +444,8 @@ export default function ManifestTemplateSettingsPage() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editingTemplate ? 'Edit Template Manifest' : 'Buat Template Manifest Baru'}
-        subtitle="Atur nama worksheet dan pemetaan kolom Excel ke data sistem jamaah"
-        maxWidth="2xl"
+        subtitle="Atur nama worksheet, pemetaan kolom, dan kustomisasi judul header Excel"
+        maxWidth="3xl"
       >
         <form onSubmit={handleSaveTemplate} className="space-y-4">
           <div>
@@ -497,20 +510,25 @@ export default function ManifestTemplateSettingsPage() {
           {/* Column Mappings Builder */}
           <div className="space-y-2 pt-2 border-t border-slate-100">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-slate-800">
-                Daftar Pemetaan Kolom Excel:
-              </label>
+              <div>
+                <label className="block text-xs font-bold text-slate-800">
+                  Daftar Pemetaan & Judul Header Kolom Excel:
+                </label>
+                <p className="text-[11px] text-slate-500">
+                  Tarik handle kursor untuk menukar posisi kolom, pilih sumber data, dan ketik judul header kustom.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={handleAddColumn}
-                className="text-xs text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1"
+                className="text-xs text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1 shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Tambah Kolom
               </button>
             </div>
 
-            <div className="max-h-68 overflow-y-auto space-y-2 pr-1">
+            <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
               {fieldMappings.map((mapping, idx) => {
                 const isDragging = draggedIdx === idx;
                 const isDragOver = dragOverIdx === idx && draggedIdx !== idx;
@@ -523,7 +541,7 @@ export default function ManifestTemplateSettingsPage() {
                     onDragOver={(e) => handleDragOver(e, idx)}
                     onDrop={(e) => handleDrop(e, idx)}
                     onDragEnd={handleDragEnd}
-                    className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${
+                    className={`flex flex-col sm:flex-row sm:items-center gap-2 p-2 rounded-xl border transition-all ${
                       isDragging
                         ? 'opacity-30 scale-[0.98] border-dashed border-emerald-500 bg-emerald-50'
                         : isDragOver
@@ -531,60 +549,71 @@ export default function ManifestTemplateSettingsPage() {
                         : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200 shadow-2xs'
                     }`}
                   >
-                    {/* Drag Handle Cursor */}
-                    <div
-                      title="Klik & Tarik (Drag) ke posisi yang diinginkan"
-                      className="p-1 text-slate-400 hover:text-emerald-700 cursor-grab active:cursor-grabbing rounded hover:bg-white transition-colors"
-                    >
-                      <GripVertical className="w-4 h-4" />
+                    {/* Left Controls: Drag handle, up/down, column letter badge */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div
+                        title="Klik & Tarik (Drag) ke posisi yang diinginkan"
+                        className="p-1 text-slate-400 hover:text-emerald-700 cursor-grab active:cursor-grabbing rounded hover:bg-white transition-colors"
+                      >
+                        <GripVertical className="w-4 h-4" />
+                      </div>
+
+                      <div className="flex flex-col gap-0.5">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => handleMoveUp(idx)}
+                          title="Geser Kolom ke Atas (1 Baris)"
+                          className="p-0.5 text-slate-400 hover:text-emerald-700 hover:bg-white rounded transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                        >
+                          <ChevronUp className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === fieldMappings.length - 1}
+                          onClick={() => handleMoveDown(idx)}
+                          title="Geser Kolom ke Bawah (1 Baris)"
+                          className="p-0.5 text-slate-400 hover:text-emerald-700 hover:bg-white rounded transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                        >
+                          <ChevronDown className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      <span className="w-9 py-1 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-800 text-center shadow-2xs">
+                        {mapping.col}
+                      </span>
                     </div>
 
-                    {/* Step Reorder Buttons */}
-                    <div className="flex flex-col gap-0.5">
-                      <button
-                        type="button"
-                        disabled={idx === 0}
-                        onClick={() => handleMoveUp(idx)}
-                        title="Geser Kolom ke Atas (1 Baris)"
-                        className="p-0.5 text-slate-400 hover:text-emerald-700 hover:bg-white rounded transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                    {/* Middle: Field Selector & Custom Header Input */}
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <select
+                        value={mapping.field}
+                        onChange={(e) => handleMappingChange(idx, e.target.value as ManifestSystemField)}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       >
-                        <ChevronUp className="w-3 h-3" />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={idx === fieldMappings.length - 1}
-                        onClick={() => handleMoveDown(idx)}
-                        title="Geser Kolom ke Bawah (1 Baris)"
-                        className="p-0.5 text-slate-400 hover:text-emerald-700 hover:bg-white rounded transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-400"
-                      >
-                        <ChevronDown className="w-3 h-3" />
-                      </button>
+                        {AVAILABLE_SYSTEM_FIELDS.map(f => (
+                          <option key={f.key} value={f.key}>
+                            {f.label} ({f.key})
+                          </option>
+                        ))}
+                      </select>
+
+                      <input
+                        type="text"
+                        placeholder="Judul Header Excel (Opsional)"
+                        value={mapping.customHeader || ''}
+                        onChange={(e) => handleCustomHeaderChange(idx, e.target.value)}
+                        title="Nama judul kolom di baris header Excel (kosongkan jika ingin nama standar bawaan)"
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none font-medium"
+                      />
                     </div>
-
-                    {/* Column Letter Badge */}
-                    <span className="w-9 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-800 text-center shadow-2xs">
-                      {mapping.col}
-                    </span>
-
-                    {/* Field Selector */}
-                    <select
-                      value={mapping.field}
-                      onChange={(e) => handleMappingChange(idx, e.target.value as ManifestSystemField)}
-                      className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    >
-                      {AVAILABLE_SYSTEM_FIELDS.map(f => (
-                        <option key={f.key} value={f.key}>
-                          {f.label} ({f.key})
-                        </option>
-                      ))}
-                    </select>
 
                     {/* Remove Column */}
                     {fieldMappings.length > 1 && (
                       <button
                         type="button"
                         onClick={() => handleRemoveColumn(idx)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0 self-end sm:self-center"
                         title="Hapus Kolom"
                       >
                         <Trash2 className="w-4 h-4" />

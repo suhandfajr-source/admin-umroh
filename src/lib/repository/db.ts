@@ -2304,6 +2304,7 @@ export class DbRepository {
         K: 'phone',
         L: 'pic_name',
       },
+      column_headers: data.column_headers || {},
       date_formats: data.date_formats || { birth_date: 'YYYY-MM-DD', passport_expiry_date: 'YYYY-MM-DD' },
       value_transformations: data.value_transformations || { gender: { MALE: 'M', FEMALE: 'F' } },
       is_active: data.is_active !== undefined ? data.is_active : true,

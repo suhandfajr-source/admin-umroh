@@ -358,6 +358,7 @@ export interface ManifestTemplate {
   header_row: number;
   data_start_row: number;
   field_mapping: Record<string, ManifestSystemField>; // e.g. { "A": "no", "B": "passport_name" }
+  column_headers?: Record<string, string>; // e.g. { "A": "NO", "B": "PASSENGER NAME" }
   date_formats?: Record<string, string>; // e.g. { "birth_date": "YYYY-MM-DD" }
   value_transformations?: Record<string, Record<string, string>>; // e.g. { "gender": { "MALE": "M", "FEMALE": "F" } }
   is_active: boolean;

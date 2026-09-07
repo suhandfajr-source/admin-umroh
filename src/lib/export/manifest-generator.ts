@@ -142,7 +142,8 @@ export class ManifestGenerator {
 
       for (const [colLetter, fieldKey] of Object.entries(mapping)) {
         const cell = worksheet.getCell(`${colLetter}${headerRowIndex}`);
-        cell.value = columnLabels[fieldKey] || fieldKey.toUpperCase();
+        const customTitle = template?.column_headers?.[colLetter]?.trim();
+        cell.value = customTitle || columnLabels[fieldKey] || fieldKey.toUpperCase();
         cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF1E293B' } };
         cell.fill = {
           type: 'pattern',
