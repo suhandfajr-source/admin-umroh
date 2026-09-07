@@ -1307,6 +1307,27 @@ export class DbRepository {
     return updated;
   }
 
+  public static async deletePackage(id: string): Promise<boolean> {
+    const idx = globalStore.packages.findIndex(p => p.id === id);
+    if (idx === -1) return false;
+    const now = new Date().toISOString();
+    globalStore.packages[idx] = {
+      ...globalStore.packages[idx],
+      deleted_at: now,
+      updated_at: now,
+    };
+    // Also soft-delete all participants in this package
+    globalStore.package_participants.forEach(part => {
+      if (part.package_id === id && !part.deleted_at) {
+        part.deleted_at = now;
+        part.participant_status = 'ARCHIVED';
+        part.updated_at = now;
+      }
+    });
+    syncStoreToDisk();
+    return true;
+  }
+
   // ==========================================
   // PICS (Master Person in Charge)
   // ==========================================
@@ -1344,6 +1365,42 @@ export class DbRepository {
   public static async getPicById(id: string): Promise<PIC | null> {
     const pic = globalStore.pics.find(p => p.id === id && !p.deleted_at);
     return pic || null;
+  }
+
+  public static async updatePic(id: string, data: { name?: string; phone?: string; notes?: string }): Promise<PIC | null> {
+    const idx = globalStore.pics.findIndex(p => p.id === id);
+    if (idx === -1) return null;
+    const now = new Date().toISOString();
+    const updated: PIC = {
+      ...globalStore.pics[idx],
+      name: data.name !== undefined ? data.name : globalStore.pics[idx].name,
+      phone: data.phone !== undefined ? data.phone : globalStore.pics[idx].phone,
+      notes: data.notes !== undefined ? data.notes : globalStore.pics[idx].notes,
+      updated_at: now,
+    };
+    globalStore.pics[idx] = updated;
+    syncStoreToDisk();
+    return updated;
+  }
+
+  public static async deletePic(id: string): Promise<boolean> {
+    const idx = globalStore.pics.findIndex(p => p.id === id);
+    if (idx === -1) return false;
+    const now = new Date().toISOString();
+    globalStore.pics[idx] = {
+      ...globalStore.pics[idx],
+      deleted_at: now,
+      updated_at: now,
+    };
+    // Reassign participants with this pic_id to null
+    globalStore.package_participants.forEach(part => {
+      if (part.pic_id === id) {
+        part.pic_id = null;
+        part.updated_at = now;
+      }
+    });
+    syncStoreToDisk();
+    return true;
   }
 
   // ==========================================
@@ -1418,14 +1475,63 @@ export class DbRepository {
     return true;
   }
 
+  public static async updateParticipant(
+    participantId: string,
+    data: { pic_id?: string | null; b2b_price?: number; selling_price?: number; notes?: string | null; participant_status?: any }
+  ): Promise<PackageParticipant | null> {
+    const idx = globalStore.package_participants.findIndex(p => p.id === participantId);
+    if (idx === -1) return null;
+    const now = new Date().toISOString();
+    const existing = globalStore.package_participants[idx];
+    const updated: PackageParticipant = {
+      ...existing,
+      pic_id: data.pic_id !== undefined ? data.pic_id : existing.pic_id,
+      b2b_price: data.b2b_price !== undefined ? Number(data.b2b_price) : existing.b2b_price,
+      selling_price: data.selling_price !== undefined ? Number(data.selling_price) : existing.selling_price,
+      notes: data.notes !== undefined ? data.notes : existing.notes,
+      participant_status: data.participant_status || existing.participant_status,
+      updated_at: now,
+    };
+    globalStore.package_participants[idx] = updated;
+
+    // Update base_amount and total_amount on associated invoice if selling_price changed
+    const invIdx = globalStore.invoices.findIndex(inv => inv.package_participant_id === participantId);
+    if (invIdx !== -1 && data.selling_price !== undefined) {
+      const inv = globalStore.invoices[invIdx];
+      const diff = Number(data.selling_price) - inv.base_amount;
+      globalStore.invoices[invIdx] = {
+        ...inv,
+        base_amount: Number(data.selling_price),
+        total_amount: (inv.total_amount || 0) + diff,
+        outstanding: Math.max(0, (inv.outstanding || 0) + diff),
+        updated_at: now,
+      };
+    }
+    syncStoreToDisk();
+    return updated;
+  }
+
   public static async softDeleteParticipant(participantId: string): Promise<boolean> {
     const idx = globalStore.package_participants.findIndex(p => p.id === participantId);
     if (idx === -1) return false;
+    const now = new Date().toISOString();
     globalStore.package_participants[idx] = {
       ...globalStore.package_participants[idx],
-      deleted_at: new Date().toISOString(),
+      deleted_at: now,
       participant_status: 'ARCHIVED',
+      updated_at: now,
     };
+
+    // Void associated invoice
+    const invIdx = globalStore.invoices.findIndex(inv => inv.package_participant_id === participantId);
+    if (invIdx !== -1) {
+      globalStore.invoices[invIdx] = {
+        ...globalStore.invoices[invIdx],
+        status: 'VOID',
+        updated_at: now,
+      };
+    }
+    syncStoreToDisk();
     return true;
   }
 
@@ -2182,6 +2288,27 @@ export class DbRepository {
       metadata: { amount: globalStore.payments[pIdx].amount, reason: cancellationReason },
     });
 
+    return (await this.getPaymentById(paymentId))!;
+  }
+
+  public static async updatePayment(
+    paymentId: string,
+    data: { notes?: string; sender_bank?: string; payment_type?: any; sender_name?: string }
+  ): Promise<Payment | null> {
+    const pIdx = globalStore.payments.findIndex(p => p.id === paymentId);
+    if (pIdx === -1) return null;
+
+    const now = new Date().toISOString();
+    const existing = globalStore.payments[pIdx];
+    globalStore.payments[pIdx] = {
+      ...existing,
+      notes: data.notes !== undefined ? data.notes : existing.notes,
+      sender_bank: data.sender_bank !== undefined ? data.sender_bank : existing.sender_bank,
+      payment_type: data.payment_type !== undefined ? data.payment_type : existing.payment_type,
+      sender_name: data.sender_name !== undefined ? data.sender_name : existing.sender_name,
+      updated_at: now,
+    };
+    syncStoreToDisk();
     return (await this.getPaymentById(paymentId))!;
   }
 

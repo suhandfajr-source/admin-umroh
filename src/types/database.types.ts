@@ -148,7 +148,7 @@ export interface PackageParticipant {
 // STAGE 2: FINANCE JAMAAH TYPES
 // ==========================================
 
-export type InvoiceStatus = 'UNPAID' | 'PARTIAL' | 'PAID' | 'OVERPAID';
+export type InvoiceStatus = 'UNPAID' | 'PARTIAL' | 'PAID' | 'OVERPAID' | 'VOID' | 'CANCELLED';
 export type InvoiceItemType = 'CHARGE' | 'DISCOUNT' | 'ADJUSTMENT';
 export type PaymentAllocationStatus = 'UNALLOCATED' | 'PARTIALLY_ALLOCATED' | 'ALLOCATED' | 'CANCELLED';
 export type PaymentStatus = 'COMPLETED' | 'CANCELLED';

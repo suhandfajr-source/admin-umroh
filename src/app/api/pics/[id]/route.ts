@@ -6,16 +6,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const pkg = await DbRepository.getPackageById(params.id);
-    if (!pkg) {
-      return NextResponse.json({ error: 'Paket tidak ditemukan' }, { status: 404 });
+    const pic = await DbRepository.getPicById(params.id);
+    if (!pic) {
+      return NextResponse.json({ error: 'PIC tidak ditemukan' }, { status: 404 });
     }
-
-    const participants = await DbRepository.getParticipants({ packageId: params.id });
-    return NextResponse.json({
-      ...pkg,
-      participants,
-    });
+    return NextResponse.json(pic);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -27,10 +22,20 @@ export async function PUT(
 ) {
   try {
     const body = await req.json();
-    const updated = await DbRepository.updatePackage(params.id, body);
-    if (!updated) {
-      return NextResponse.json({ error: 'Paket tidak ditemukan' }, { status: 404 });
+    if (!body.name) {
+      return NextResponse.json({ error: 'Nama PIC wajib diisi.' }, { status: 400 });
     }
+
+    const updated = await DbRepository.updatePic(params.id, {
+      name: body.name,
+      phone: body.phone,
+      notes: body.notes,
+    });
+
+    if (!updated) {
+      return NextResponse.json({ error: 'PIC tidak ditemukan' }, { status: 404 });
+    }
+
     return NextResponse.json(updated);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -42,11 +47,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const deleted = await DbRepository.deletePackage(params.id);
+    const deleted = await DbRepository.deletePic(params.id);
     if (!deleted) {
-      return NextResponse.json({ error: 'Paket tidak ditemukan' }, { status: 404 });
+      return NextResponse.json({ error: 'PIC tidak ditemukan' }, { status: 404 });
     }
-    return NextResponse.json({ success: true, message: 'Paket berhasil dihapus' });
+    return NextResponse.json({ success: true, message: 'PIC berhasil dihapus' });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

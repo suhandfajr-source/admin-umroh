@@ -445,7 +445,7 @@ export default function ManifestTemplateSettingsPage() {
         onClose={() => setModalOpen(false)}
         title={editingTemplate ? 'Edit Template Manifest' : 'Buat Template Manifest Baru'}
         subtitle="Atur nama worksheet, pemetaan kolom, dan kustomisasi judul header Excel"
-        maxWidth="3xl"
+        maxWidth="4xl"
       >
         <form onSubmit={handleSaveTemplate} className="space-y-4">
           <div>
