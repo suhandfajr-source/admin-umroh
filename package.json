@@ -23,6 +23,7 @@
     "@types/pdf-parse": "^1.1.5",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "docx-preview": "^0.4.0",
     "docxtemplater": "^3.69.3",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",

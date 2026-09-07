@@ -31,6 +31,7 @@ import {
 } from '@/lib/recommendation-letter';
 import { downloadPassportDocx } from '@/lib/docx-generator';
 import { PassportRecommendationPrintView } from './PassportRecommendationPrintView';
+import { DocxRendererView } from './DocxRendererView';
 
 interface PassportRecommendationModalProps {
   isOpen: boolean;
@@ -580,9 +581,15 @@ export const PassportRecommendationModal: React.FC<PassportRecommendationModalPr
             {/* Preview Top Toolbar with Zoom Controls */}
             <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-2">
-                <Eye className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="font-bold text-slate-800 text-[11px] sm:text-xs">Pratinjau Live Dokumen (A4)</span>
-                <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-mono hidden sm:inline">210 × 297 mm</span>
+                <Eye className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span className="font-bold text-slate-800 text-[11px] sm:text-xs">Pratinjau Live Template Word (.docx)</span>
+                {settings.hasCustomDocxTemplate ? (
+                  <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold border border-blue-200">
+                    ✓ Template Kustom Aktif
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-mono hidden sm:inline">210 × 297 mm</span>
+                )}
               </div>
 
               {/* Zoom Controls */}
@@ -620,7 +627,7 @@ export const PassportRecommendationModal: React.FC<PassportRecommendationModalPr
                       onClick={() => setZoomLevel(preset)}
                       className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors ${
                         Math.abs(zoomLevel - preset) < 0.04
-                          ? 'bg-emerald-600 text-white'
+                          ? 'bg-blue-600 text-white'
                           : 'text-slate-600 hover:bg-slate-100'
                       }`}
                     >
@@ -648,7 +655,10 @@ export const PassportRecommendationModal: React.FC<PassportRecommendationModalPr
                   marginBottom: zoomLevel < 1 ? `-${Math.round((1 - zoomLevel) * 297 * 3.78)}px` : '20px'
                 }}
               >
-                <PassportRecommendationPrintView data={letterData} />
+                <DocxRendererView 
+                  data={letterData} 
+                  customTemplateBase64={settings.customDocxTemplateBase64} 
+                />
               </div>
             </div>
           </div>
