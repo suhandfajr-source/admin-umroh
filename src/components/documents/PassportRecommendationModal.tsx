@@ -547,10 +547,28 @@ export const PassportRecommendationModal: React.FC<PassportRecommendationModalPr
                 )}
               </div>
 
+              {/* Status Template DOCX Kustom */}
+              {settings.hasCustomDocxTemplate && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-blue-700" />
+                      Template Word (.docx) Kustom Aktif
+                    </span>
+                    <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
+                      Terpasang
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-blue-700 leading-relaxed">
+                    File <strong>{settings.customDocxTemplateName || 'Template Surat Rekom.docx'}</strong> otomatis digunakan saat Anda mengklik tombol <strong>Download Word (.docx)</strong>.
+                  </p>
+                </div>
+              )}
+
               {/* Opsi Kop & TTD yang Terupload */}
               <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                  <span className="text-xs font-bold text-slate-800">Opsi Template & Tanda Tangan</span>
+                  <span className="text-xs font-bold text-slate-800">Opsi Template PDF & Tanda Tangan</span>
                   <a
                     href="/pengaturan"
                     target="_blank"
@@ -690,8 +708,12 @@ export const PassportRecommendationModal: React.FC<PassportRecommendationModalPr
 
         {/* Modal Footer Actions */}
         <div className="px-5 py-3 sm:px-6 sm:py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/80">
-          <div className="text-xs text-slate-500">
-            <span>Kop: <strong>{useUploadedLetterhead && settings.letterheadImageUrl ? 'Template Gambar' : 'Standar'}</strong> • TTD: <strong>{useDigitalSignature && settings.signatureImageUrl ? 'Digital Terpasang' : 'Stempel Manual'}</strong></span>
+          <div className="text-xs text-slate-500 flex flex-wrap items-center gap-2">
+            <span>Template Word: <strong className={settings.hasCustomDocxTemplate ? 'text-blue-700' : 'text-slate-700'}>{settings.hasCustomDocxTemplate ? `Kustom (${settings.customDocxTemplateName || 'template.docx'})` : 'Standar'}</strong></span>
+            <span>•</span>
+            <span>Kop PDF: <strong>{useUploadedLetterhead && settings.letterheadImageUrl ? 'Template Gambar' : 'Standar'}</strong></span>
+            <span>•</span>
+            <span>TTD: <strong>{useDigitalSignature && settings.signatureImageUrl ? 'Digital' : 'Manual'}</strong></span>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-2.5">
