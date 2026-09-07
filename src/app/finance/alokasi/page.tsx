@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { formatRupiah, parseRupiahInput } from '@/lib/currency';
+import { formatRupiah, parseRupiahInput, formatInputNumber } from '@/lib/currency';
 import { Payment, Invoice, PIC, Package } from '@/types/database.types';
 
 function AllocationWorkspaceContent() {
@@ -97,7 +97,7 @@ function AllocationWorkspaceContent() {
   const handleInputChange = (invoiceId: string, value: string) => {
     setAllocInputs(prev => ({
       ...prev,
-      [invoiceId]: value,
+      [invoiceId]: formatInputNumber(value),
     }));
   };
 

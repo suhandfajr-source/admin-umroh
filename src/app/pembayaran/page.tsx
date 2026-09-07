@@ -26,7 +26,7 @@ import {
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { formatRupiah, parseRupiahInput } from '@/lib/currency';
+import { formatRupiah, parseRupiahInput, formatInputNumber } from '@/lib/currency';
 import { UnifiedJamaahDetailModal } from '@/components/jamaah/UnifiedJamaahDetailModal';
 
 export default function PembayaranPage() {
@@ -693,10 +693,11 @@ export default function PembayaranPage() {
                 <label className="font-bold text-slate-700">Nominal (Rp) *</label>
                 <input
                   type="text"
+                  inputMode="numeric"
                   required
                   placeholder="Contoh: 50.000.000"
                   value={amountStr}
-                  onChange={(e) => setAmountStr(e.target.value)}
+                  onChange={(e) => setAmountStr(formatInputNumber(e.target.value))}
                   className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono font-bold"
                 />
               </div>

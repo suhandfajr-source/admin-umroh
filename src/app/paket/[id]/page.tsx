@@ -29,6 +29,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
 import { evaluatePassportHealth } from '@/lib/passport-health';
+import { formatInputNumber, parseRupiahInput, formatRupiah } from '@/lib/currency';
 
 export default function PackageDetailPage() {
   const params = useParams();
@@ -44,15 +45,15 @@ export default function PackageDetailPage() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedJamaahId, setSelectedJamaahId] = useState('');
   const [selectedPicId, setSelectedPicId] = useState('');
-  const [b2bPrice, setB2bPrice] = useState<number>(0);
-  const [sellingPrice, setSellingPrice] = useState<number>(0);
+  const [b2bPrice, setB2bPrice] = useState<string>('');
+  const [sellingPrice, setSellingPrice] = useState<string>('');
   const [participantNotes, setParticipantNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // Edit Participant State
   const [editPart, setEditPart] = useState<PackageParticipant | null>(null);
   const [editPicId, setEditPicId] = useState('');
-  const [editSellingPrice, setEditSellingPrice] = useState<number>(0);
+  const [editSellingPrice, setEditSellingPrice] = useState<string>('');
   const [editNotes, setEditNotes] = useState('');
   const [editStatus, setEditStatus] = useState<string>('REGISTERED');
   const [submittingEdit, setSubmittingEdit] = useState(false);
@@ -75,8 +76,8 @@ export default function PackageDetailPage() {
       setAllJamaah(resJamaah || []);
       setPics(resPics || []);
       if (resPkg) {
-        setB2bPrice(resPkg.b2b_price);
-        setSellingPrice(resPkg.reference_price);
+        setB2bPrice(formatInputNumber(resPkg.b2b_price));
+        setSellingPrice(formatInputNumber(resPkg.reference_price));
       }
     } catch (err) {
       console.error(err);
@@ -102,8 +103,8 @@ export default function PackageDetailPage() {
           package_id: pkgId,
           jamaah_id: selectedJamaahId,
           pic_id: selectedPicId || null,
-          b2b_price: b2bPrice,
-          selling_price: sellingPrice,
+          b2b_price: parseRupiahInput(b2bPrice),
+          selling_price: parseRupiahInput(sellingPrice),
           notes: participantNotes,
         }),
       });
@@ -124,7 +125,7 @@ export default function PackageDetailPage() {
   const openEditModal = (part: PackageParticipant) => {
     setEditPart(part);
     setEditPicId(part.pic_id || '');
-    setEditSellingPrice(part.selling_price || 0);
+    setEditSellingPrice(formatInputNumber(part.selling_price));
     setEditNotes(part.notes || '');
     setEditStatus(part.participant_status || 'REGISTERED');
   };
@@ -140,7 +141,7 @@ export default function PackageDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pic_id: editPicId || null,
-          selling_price: editSellingPrice,
+          selling_price: parseRupiahInput(editSellingPrice),
           notes: editNotes,
           participant_status: editStatus,
         }),
@@ -568,23 +569,27 @@ export default function PackageDetailPage() {
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Harga B2B Peserta (Rp)</label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={b2bPrice}
-                onChange={(e) => setB2bPrice(Number(e.target.value))}
+                onChange={(e) => setB2bPrice(formatInputNumber(e.target.value))}
+                placeholder="Contoh: 27.500.000"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800"
               />
-              <span className="text-[10px] text-slate-400 mt-0.5 block">{formatRupiah(b2bPrice)}</span>
+              <span className="text-[10px] text-slate-400 mt-0.5 block">{formatRupiah(parseRupiahInput(b2bPrice))}</span>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Harga Jual Jamaah (Rp) <span className="text-rose-500">*</span></label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 required
                 value={sellingPrice}
-                onChange={(e) => setSellingPrice(Number(e.target.value))}
+                onChange={(e) => setSellingPrice(formatInputNumber(e.target.value))}
+                placeholder="Contoh: 30.000.000"
                 className="w-full px-3 py-2 bg-emerald-50/50 border border-emerald-300 rounded-xl text-xs font-mono font-bold text-emerald-950"
               />
-              <span className="text-[10px] text-emerald-600 mt-0.5 block font-semibold">{formatRupiah(sellingPrice)}</span>
+              <span className="text-[10px] text-emerald-600 mt-0.5 block font-semibold">{formatRupiah(parseRupiahInput(sellingPrice))}</span>
             </div>
           </div>
 
@@ -647,10 +652,12 @@ export default function PackageDetailPage() {
               Harga Jual Tagihan Jamaah (Rp) <span className="text-rose-500">*</span>
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               required
               value={editSellingPrice}
-              onChange={(e) => setEditSellingPrice(Number(e.target.value))}
+              onChange={(e) => setEditSellingPrice(formatInputNumber(e.target.value))}
+              placeholder="Contoh: 30.000.000"
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-hidden focus:border-emerald-500"
             />
           </div>

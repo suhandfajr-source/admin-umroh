@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { formatInputNumber, parseRupiahInput } from '@/lib/currency';
 
 export default function PackagesListPage() {
   const [packages, setPackages] = useState<Package[]>([]);
@@ -30,8 +31,8 @@ export default function PackagesListPage() {
     package_name: '',
     departure_date: '',
     return_date: '',
-    b2b_price: 27500000,
-    reference_price: 30000000,
+    b2b_price: '27.500.000',
+    reference_price: '30.000.000',
     airline: 'Saudi Airlines',
     makkah_hotel: 'Pullman Zamzam Makkah',
     madinah_hotel: 'Dar Al Taqwa Madinah',
@@ -47,8 +48,8 @@ export default function PackagesListPage() {
     package_name: '',
     departure_date: '',
     return_date: '',
-    b2b_price: 0,
-    reference_price: 0,
+    b2b_price: '',
+    reference_price: '',
     airline: '',
     makkah_hotel: '',
     madinah_hotel: '',
@@ -83,10 +84,16 @@ export default function PackagesListPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const payload = {
+        ...formData,
+        b2b_price: parseRupiahInput(formData.b2b_price),
+        reference_price: parseRupiahInput(formData.reference_price),
+        quota: Number(formData.quota),
+      };
       const res = await fetch('/api/packages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Gagal membuat paket');
       setCreateModalOpen(false);
@@ -104,8 +111,8 @@ export default function PackagesListPage() {
       package_name: pkg.package_name || (pkg as any).name || '',
       departure_date: pkg.departure_date || '',
       return_date: pkg.return_date || '',
-      b2b_price: pkg.b2b_price || 0,
-      reference_price: pkg.reference_price || (pkg as any).price_quad || 0,
+      b2b_price: formatInputNumber(pkg.b2b_price),
+      reference_price: formatInputNumber(pkg.reference_price || (pkg as any).price_quad),
       airline: pkg.airline || '',
       makkah_hotel: pkg.makkah_hotel || '',
       madinah_hotel: pkg.madinah_hotel || '',
@@ -121,10 +128,16 @@ export default function PackagesListPage() {
 
     setSubmittingEdit(true);
     try {
+      const payload = {
+        ...editFormData,
+        b2b_price: parseRupiahInput(editFormData.b2b_price),
+        reference_price: parseRupiahInput(editFormData.reference_price),
+        quota: Number(editFormData.quota),
+      };
       const res = await fetch(`/api/packages/${editPkg.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editFormData),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -377,10 +390,12 @@ export default function PackagesListPage() {
                 Harga Dasar B2B (Rp) <span className="text-rose-500">*</span>
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 required
                 value={formData.b2b_price}
-                onChange={(e) => setFormData({ ...formData, b2b_price: Number(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, b2b_price: formatInputNumber(e.target.value) })}
+                placeholder="Contoh: 27.500.000"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:bg-white focus:outline-hidden focus:border-emerald-500"
               />
             </div>
@@ -389,10 +404,12 @@ export default function PackagesListPage() {
                 Harga Referensi Jual (Rp) <span className="text-rose-500">*</span>
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 required
                 value={formData.reference_price}
-                onChange={(e) => setFormData({ ...formData, reference_price: Number(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, reference_price: formatInputNumber(e.target.value) })}
+                placeholder="Contoh: 30.000.000"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-emerald-950 focus:bg-white focus:outline-hidden focus:border-emerald-500"
               />
             </div>
@@ -532,10 +549,12 @@ export default function PackagesListPage() {
                 Harga Dasar B2B (Rp) <span className="text-rose-500">*</span>
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 required
                 value={editFormData.b2b_price}
-                onChange={(e) => setEditFormData({ ...editFormData, b2b_price: Number(e.target.value) })}
+                onChange={(e) => setEditFormData({ ...editFormData, b2b_price: formatInputNumber(e.target.value) })}
+                placeholder="Contoh: 27.500.000"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:bg-white focus:outline-hidden focus:border-emerald-500"
               />
             </div>
@@ -544,10 +563,12 @@ export default function PackagesListPage() {
                 Harga Referensi Jual (Rp) <span className="text-rose-500">*</span>
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 required
                 value={editFormData.reference_price}
-                onChange={(e) => setEditFormData({ ...editFormData, reference_price: Number(e.target.value) })}
+                onChange={(e) => setEditFormData({ ...editFormData, reference_price: formatInputNumber(e.target.value) })}
+                placeholder="Contoh: 30.000.000"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-emerald-950 focus:bg-white focus:outline-hidden focus:border-emerald-500"
               />
             </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Jamaah, Package, PIC } from '@/types/database.types';
 import { Package as PackageIcon, UserCheck, AlertCircle } from 'lucide-react';
+import { formatInputNumber, parseRupiahInput, formatRupiah } from '@/lib/currency';
 
 interface AddToPackageModalProps {
   isOpen: boolean;
@@ -22,8 +23,8 @@ export const AddToPackageModal: React.FC<AddToPackageModalProps> = ({
   const [pics, setPics] = useState<PIC[]>([]);
   const [selectedPackageId, setSelectedPackageId] = useState('');
   const [selectedPicId, setSelectedPicId] = useState('');
-  const [b2bPrice, setB2bPrice] = useState<number>(0);
-  const [sellingPrice, setSellingPrice] = useState<number>(0);
+  const [b2bPrice, setB2bPrice] = useState<string>('');
+  const [sellingPrice, setSellingPrice] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -41,8 +42,8 @@ export const AddToPackageModal: React.FC<AddToPackageModalProps> = ({
         if (pkgData && pkgData.length > 0) {
           const first = pkgData[0];
           setSelectedPackageId(first.id);
-          setB2bPrice(first.b2b_price);
-          setSellingPrice(first.reference_price);
+          setB2bPrice(formatInputNumber(first.b2b_price));
+          setSellingPrice(formatInputNumber(first.reference_price));
         }
       });
     }
@@ -52,8 +53,8 @@ export const AddToPackageModal: React.FC<AddToPackageModalProps> = ({
     setSelectedPackageId(pkgId);
     const found = packages.find(p => p.id === pkgId);
     if (found) {
-      setB2bPrice(found.b2b_price);
-      setSellingPrice(found.reference_price);
+      setB2bPrice(formatInputNumber(found.b2b_price));
+      setSellingPrice(formatInputNumber(found.reference_price));
     }
   };
 
@@ -75,8 +76,8 @@ export const AddToPackageModal: React.FC<AddToPackageModalProps> = ({
           package_id: selectedPackageId,
           jamaah_id: jamaah.id,
           pic_id: selectedPicId || null,
-          b2b_price: b2bPrice,
-          selling_price: sellingPrice,
+          b2b_price: parseRupiahInput(b2bPrice),
+          selling_price: parseRupiahInput(sellingPrice),
           notes,
         }),
       });
@@ -161,12 +162,14 @@ export const AddToPackageModal: React.FC<AddToPackageModalProps> = ({
               Harga B2B Paket (Rp)
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={b2bPrice}
-              onChange={(e) => setB2bPrice(Number(e.target.value))}
+              onChange={(e) => setB2bPrice(formatInputNumber(e.target.value))}
+              placeholder="Contoh: 27.500.000"
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-medium text-slate-800 focus:outline-hidden focus:border-emerald-500"
             />
-            <span className="text-[10px] text-slate-400 mt-0.5 block">{formatRupiah(b2bPrice)}</span>
+            <span className="text-[10px] text-slate-400 mt-0.5 block">{formatRupiah(parseRupiahInput(b2bPrice))}</span>
           </div>
 
           <div>
@@ -174,13 +177,15 @@ export const AddToPackageModal: React.FC<AddToPackageModalProps> = ({
               Harga Jual Jamaah (Rp) <span className="text-rose-500">*</span>
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={sellingPrice}
-              onChange={(e) => setSellingPrice(Number(e.target.value))}
+              onChange={(e) => setSellingPrice(formatInputNumber(e.target.value))}
+              placeholder="Contoh: 30.000.000"
               required
               className="w-full px-3 py-2 bg-emerald-50/50 border border-emerald-300 rounded-xl text-xs font-mono font-bold text-emerald-950 focus:outline-hidden focus:border-emerald-500"
             />
-            <span className="text-[10px] text-emerald-600 mt-0.5 block font-semibold">{formatRupiah(sellingPrice)}</span>
+            <span className="text-[10px] text-emerald-600 mt-0.5 block font-semibold">{formatRupiah(parseRupiahInput(sellingPrice))}</span>
           </div>
         </div>
 

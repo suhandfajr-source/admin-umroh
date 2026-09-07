@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
+import { formatInputNumber, parseRupiahInput } from '@/lib/currency';
 
 export default function AllParticipantsPage() {
   const [participants, setParticipants] = useState<PackageParticipant[]>([]);
@@ -21,7 +22,7 @@ export default function AllParticipantsPage() {
   // Edit State
   const [editPart, setEditPart] = useState<PackageParticipant | null>(null);
   const [editPicId, setEditPicId] = useState('');
-  const [editSellingPrice, setEditSellingPrice] = useState<number>(0);
+  const [editSellingPrice, setEditSellingPrice] = useState<string>('');
   const [editNotes, setEditNotes] = useState('');
   const [editStatus, setEditStatus] = useState<string>('REGISTERED');
   const [submittingEdit, setSubmittingEdit] = useState(false);
@@ -57,7 +58,7 @@ export default function AllParticipantsPage() {
   const openEditModal = (part: PackageParticipant) => {
     setEditPart(part);
     setEditPicId(part.pic_id || '');
-    setEditSellingPrice(part.selling_price || 0);
+    setEditSellingPrice(formatInputNumber(part.selling_price));
     setEditNotes(part.notes || '');
     setEditStatus(part.participant_status || 'REGISTERED');
   };
@@ -73,7 +74,7 @@ export default function AllParticipantsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pic_id: editPicId || null,
-          selling_price: editSellingPrice,
+          selling_price: parseRupiahInput(editSellingPrice),
           notes: editNotes,
           participant_status: editStatus,
         }),
@@ -299,10 +300,12 @@ export default function AllParticipantsPage() {
               Harga Jual Tagihan Jamaah (Rp) <span className="text-rose-500">*</span>
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               required
               value={editSellingPrice}
-              onChange={(e) => setEditSellingPrice(Number(e.target.value))}
+              onChange={(e) => setEditSellingPrice(formatInputNumber(e.target.value))}
+              placeholder="Contoh: 30.000.000"
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-hidden focus:border-emerald-500"
             />
           </div>

@@ -22,11 +22,25 @@ export function formatRupiahWithoutSymbol(amount?: number | bigint | null): stri
   return Number(amount).toLocaleString('id-ID');
 }
 
-export function parseRupiahInput(value: string | number): number {
+/**
+ * Formats a numeric or raw string value with Indonesian thousand separators (dots) for UI input fields.
+ * e.g., "27500000" -> "27.500.000"
+ * e.g., 30000000 -> "30.000.000"
+ */
+export function formatInputNumber(value?: string | number | null): string {
+  if (value === undefined || value === null || value === '') return '';
+  const digits = String(value).replace(/\D/g, '');
+  if (!digits) return '';
+  const num = parseInt(digits, 10);
+  return isNaN(num) ? '' : num.toLocaleString('id-ID');
+}
+
+export function parseRupiahInput(value: string | number | undefined | null): number {
+  if (value === undefined || value === null) return 0;
   if (typeof value === 'number') return Math.round(value);
   if (!value) return 0;
   // Remove non-digits except minus sign
-  const cleaned = value.replace(/[^0-9-]/g, '');
+  const cleaned = String(value).replace(/[^0-9-]/g, '');
   const parsed = parseInt(cleaned, 10);
   return isNaN(parsed) ? 0 : parsed;
 }

@@ -21,7 +21,7 @@ import {
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { formatRupiah, parseRupiahInput } from '@/lib/currency';
+import { formatRupiah, parseRupiahInput, formatInputNumber } from '@/lib/currency';
 import { Invoice, InvoiceItemType, InvoiceStatus, Package } from '@/types/database.types';
 
 function InvoicesContent() {
@@ -482,9 +482,10 @@ function InvoicesContent() {
               <label className="block font-semibold text-slate-700 mb-1">Nominal (Rupiah)</label>
               <input
                 type="text"
+                inputMode="numeric"
                 placeholder="Contoh: 1.500.000"
                 value={itemAmount}
-                onChange={(e) => setItemAmount(e.target.value)}
+                onChange={(e) => setItemAmount(formatInputNumber(e.target.value))}
                 required
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-500 focus:bg-white"
               />
