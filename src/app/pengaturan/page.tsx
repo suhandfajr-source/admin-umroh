@@ -27,13 +27,15 @@ import {
   getStoredLetterSettings, 
   saveStoredLetterSettings, 
   LetterSettings,
+  DEFAULT_LETTER_SETTINGS,
   formatLetterNumber,
   compressImageFile
 } from '@/lib/recommendation-letter';
 import { downloadSamplePassportDocxTemplate } from '@/lib/docx-generator';
 
 export default function SettingsPage() {
-  const [letterSettings, setLetterSettings] = useState<LetterSettings>(getStoredLetterSettings());
+  const [isMounted, setIsMounted] = useState(false);
+  const [letterSettings, setLetterSettings] = useState<LetterSettings>(DEFAULT_LETTER_SETTINGS);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploadingLetterhead, setIsUploadingLetterhead] = useState(false);
@@ -43,6 +45,7 @@ export default function SettingsPage() {
   const [signatureImgError, setSignatureImgError] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     setLetterSettings(getStoredLetterSettings());
   }, []);
 
@@ -262,7 +265,7 @@ export default function SettingsPage() {
                     <ImageIcon className="w-4 h-4 text-emerald-600" />
                     1. Template / Kop Surat (A4)
                   </span>
-                  {letterSettings.letterheadImageUrl && !letterheadImgError ? (
+                  {isMounted && letterSettings.letterheadImageUrl && !letterheadImgError ? (
                     <span className="text-[10px] text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded-full">
                       ✓ File Terpasang
                     </span>
@@ -284,7 +287,7 @@ export default function SettingsPage() {
                     <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
                     <p className="text-[11px] font-bold">Mengompres & Memasang Kop...</p>
                   </div>
-                ) : letterSettings.letterheadImageUrl && !letterheadImgError ? (
+                ) : isMounted && letterSettings.letterheadImageUrl && !letterheadImgError ? (
                   <div className="relative group text-center">
                     <img
                       src={letterSettings.letterheadImageUrl}
@@ -296,7 +299,7 @@ export default function SettingsPage() {
                       ✓ Template Kop Aktif
                     </p>
                   </div>
-                ) : letterheadImgError ? (
+                ) : isMounted && letterheadImgError ? (
                   <div className="text-center p-2 text-amber-700 space-y-1">
                     <p className="text-xs font-bold">⚠️ Gambar Tidak Terbaca</p>
                     <p className="text-[10px] text-slate-500">File sebelumnya rusak atau bukan gambar valid (misal: PDF). Silakan klik 'Ganti Kop Surat' dan pilih file gambar JPG/PNG asli.</p>
@@ -314,7 +317,7 @@ export default function SettingsPage() {
               <div className="flex items-center gap-2">
                 <label className="flex-1 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold text-center cursor-pointer shadow-xs transition-all flex items-center justify-center gap-1.5">
                   <Upload className="w-3.5 h-3.5" />
-                  <span>{letterSettings.letterheadImageUrl ? 'Ganti Kop Surat' : 'Upload Kop Surat'}</span>
+                  <span>{isMounted && letterSettings.letterheadImageUrl ? 'Ganti Kop Surat' : 'Upload Kop Surat'}</span>
                   <input
                     type="file"
                     accept="image/png, image/jpeg, image/webp"
@@ -322,7 +325,7 @@ export default function SettingsPage() {
                     className="hidden"
                   />
                 </label>
-                {letterSettings.letterheadImageUrl && (
+                {isMounted && letterSettings.letterheadImageUrl && (
                   <button
                     type="button"
                     onClick={handleRemoveLetterhead}
@@ -343,7 +346,7 @@ export default function SettingsPage() {
                     <PenTool className="w-4 h-4 text-emerald-600" />
                     2. Tanda Tangan Digital Direktur
                   </span>
-                  {letterSettings.signatureImageUrl && !signatureImgError ? (
+                  {isMounted && letterSettings.signatureImageUrl && !signatureImgError ? (
                     <span className="text-[10px] text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded-full">
                       ✓ File Terpasang
                     </span>
@@ -365,7 +368,7 @@ export default function SettingsPage() {
                     <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
                     <p className="text-[11px] font-bold">Memproses Tanda Tangan...</p>
                   </div>
-                ) : letterSettings.signatureImageUrl && !signatureImgError ? (
+                ) : isMounted && letterSettings.signatureImageUrl && !signatureImgError ? (
                   <div className="text-center space-y-1">
                     <img
                       src={letterSettings.signatureImageUrl}
@@ -377,7 +380,7 @@ export default function SettingsPage() {
                       ✓ TTD Digital Siap Digunakan
                     </p>
                   </div>
-                ) : signatureImgError ? (
+                ) : isMounted && signatureImgError ? (
                   <div className="text-center p-2 text-amber-700 space-y-1">
                     <p className="text-xs font-bold">⚠️ Gambar TTD Tidak Terbaca</p>
                     <p className="text-[10px] text-slate-500">File rusak atau format tidak cocok. Silakan upload ulang file PNG/JPG tanda tangan.</p>
@@ -396,7 +399,7 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-2">
                   <label className="flex-1 px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold text-center cursor-pointer shadow-2xs transition-all flex items-center justify-center gap-1.5">
                     <Upload className="w-3.5 h-3.5 text-slate-500" />
-                    <span>{letterSettings.signatureImageUrl ? 'Ganti Tanda Tangan' : 'Upload Tanda Tangan'}</span>
+                    <span>{isMounted && letterSettings.signatureImageUrl ? 'Ganti Tanda Tangan' : 'Upload Tanda Tangan'}</span>
                     <input
                       type="file"
                       accept="image/png, image/jpeg, image/webp"
@@ -404,7 +407,7 @@ export default function SettingsPage() {
                       className="hidden"
                     />
                   </label>
-                  {letterSettings.signatureImageUrl && (
+                  {isMounted && letterSettings.signatureImageUrl && (
                     <button
                       type="button"
                       onClick={handleRemoveSignature}
@@ -416,7 +419,7 @@ export default function SettingsPage() {
                   )}
                 </div>
 
-                {letterSettings.signatureImageUrl && (
+                {isMounted && letterSettings.signatureImageUrl && (
                   <div className="flex items-center justify-between px-1 pt-1">
                     <span className="text-[11px] text-slate-600">Sertakan TTD Digital saat cetak:</span>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -443,7 +446,7 @@ export default function SettingsPage() {
                   3. Master Template Microsoft Word (.docx)
                 </span>
               </div>
-              {letterSettings.hasCustomDocxTemplate ? (
+              {isMounted && letterSettings.hasCustomDocxTemplate ? (
                 <span className="text-[10px] text-blue-700 bg-blue-100 font-bold px-2 py-0.5 rounded-full self-start sm:self-auto">
                   ✓ Template Kustom: {letterSettings.customDocxTemplateName || 'template.docx'}
                 </span>
@@ -471,7 +474,7 @@ export default function SettingsPage() {
 
               <label className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold cursor-pointer shadow-2xs transition-all flex items-center gap-1.5">
                 <Upload className="w-3.5 h-3.5" />
-                <span>{letterSettings.hasCustomDocxTemplate ? 'Ganti Template (.docx)' : 'Upload Template (.docx)'}</span>
+                <span>{isMounted && letterSettings.hasCustomDocxTemplate ? 'Ganti Template (.docx)' : 'Upload Template (.docx)'}</span>
                 <input
                   type="file"
                   accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -480,7 +483,7 @@ export default function SettingsPage() {
                 />
               </label>
 
-              {letterSettings.hasCustomDocxTemplate && (
+              {isMounted && letterSettings.hasCustomDocxTemplate && (
                 <button
                   type="button"
                   onClick={handleRemoveDocx}
